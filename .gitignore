@@ -2,4 +2,10 @@
 .env
 .env.*
 !.env.example
+
+# Web client dependencies, local configuration, and build output.
+web/node_modules/
+web/dist/
+web/.env.*
+!web/.env.example
 .supabase/

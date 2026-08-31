@@ -66,3 +66,38 @@ service secrets, or session JWTs.
 The complete schema and security contract are documented in [docs/DATABASE.md](docs/DATABASE.md).
 The request flow, trust boundaries, and deployment configuration are documented
 in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Phase 3 web client
+
+The React/Vite web client lives in [`web/`](web/). It currently provides the
+Supabase email/password auth foundation and a protected account shell; product
+features will be added in later phases.
+
+```sh
+cd web
+npm install
+cp .env.example .env.local
+# Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.local.
+npm run dev
+```
+
+Only the browser-safe Supabase URL and publishable key belong in the web
+environment. Never place a Supabase secret/service-role key in `web/.env.local`
+or any client-side source file. Use `npm run lint`, `npm run typecheck`,
+`npm test`, and `npm run build` from `web/` for local checks.
+
+In the Supabase Dashboard, configure Authentication → URL Configuration for
+the environment you are running:
+
+- Site URL: `http://localhost:5173` for local Vite development, or the exact
+  production SPA origin such as `https://app.example.com` when deployed.
+- Redirect URLs: allow the local SPA origins
+  `http://localhost:5173/**` and `http://127.0.0.1:5173/**`, plus the exact
+  production SPA origin with `/**` (for example,
+  `https://app.example.com/**`).
+
+Use the production origin as the Site URL in the production Supabase project;
+use a separate local Supabase project or switch the value while developing
+locally. These entries keep email-confirmation links and Supabase Auth
+redirects inside the SPA. If the deployed host changes, update the Site URL
+and allowed Redirect URLs together.
