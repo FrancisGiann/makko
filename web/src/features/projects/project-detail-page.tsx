@@ -8,15 +8,12 @@ import { useProjectIssues } from '../../hooks/use-project-issues'
 import type { ActivityLog, Issue } from '../../types/domain'
 import { DEFAULT_ISSUE_FILTERS, filterAndSortIssues, type IssueFilters, type IssueSort } from '../../utils/issue-filters'
 import { IssueForm } from '../issues/issue-form'
+import { ProjectGithubSection } from '../github/project-github-section'
 import { ProjectForm } from './project-form'
 
 function formatDate(value: string): string {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? 'Unknown date' : date.toLocaleString()
-}
-
-function statusLabel(status: Issue['status']): string {
-  return status === 'in_progress' ? 'In progress' : status === 'todo' ? 'To do' : 'Done'
 }
 
 function actionLabel(action: ActivityLog['action']): string {
@@ -56,6 +53,18 @@ export function ProjectDetailPage() {
   const handleIssueDelete = async (issue: Issue) => {
     if (!window.confirm(`Delete “${issue.title}”? Its deletion will remain in the project activity.`)) return
     if (await issueState.deleteIssue(issue.id)) await activityState.refresh()
+  }
+
+  const handleIssueStatusChange = async (issue: Issue, status: Issue['status']) => {
+    if (status === issue.status) return
+    const updated = await issueState.updateIssue(issue.id, {
+      title: issue.title,
+      description: issue.description ?? '',
+      type: issue.type,
+      priority: issue.priority,
+      status,
+    })
+    if (updated) await activityState.refresh()
   }
 
   return (
@@ -100,6 +109,10 @@ export function ProjectDetailPage() {
         )}
       </header>
 
+      <div className="mt-8">
+        <ProjectGithubSection projectId={project.id} />
+      </div>
+
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.75fr)]">
         <section className="min-w-0 rounded-3xl border border-white/10 bg-slate-900/50 p-6 sm:p-8" aria-labelledby="issues-heading">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -116,7 +129,7 @@ export function ProjectDetailPage() {
           <div className="mt-7 space-y-3">
             {visibleIssues.map((issue) => (
               <article key={issue.id} className="rounded-2xl border border-white/10 bg-slate-950/35 p-4 sm:p-5">
-                {editingIssue?.id === issue.id ? <><h3 className="text-lg font-semibold text-white">Edit issue</h3><div className="mt-5"><IssueForm initialIssue={issue} isSubmitting={issueState.isMutating} error={issueState.error} onCancel={() => setEditingIssue(null)} onSubmit={async (input) => { const updated = await issueState.updateIssue(issue.id, input); if (updated) { setEditingIssue(null); await activityState.refresh() } return updated }} /></div></> : <IssueRow issue={issue} onEdit={() => { setShowIssueForm(false); setEditingIssue(issue) }} onDelete={() => void handleIssueDelete(issue)} disabled={issueState.isMutating} />}
+                {editingIssue?.id === issue.id ? <><h3 className="text-lg font-semibold text-white">Edit issue</h3><div className="mt-5"><IssueForm initialIssue={issue} isSubmitting={issueState.isMutating} error={issueState.error} onCancel={() => setEditingIssue(null)} onSubmit={async (input) => { const updated = await issueState.updateIssue(issue.id, input); if (updated) { setEditingIssue(null); await activityState.refresh() } return updated }} /></div></> : <IssueRow issue={issue} onEdit={() => { setShowIssueForm(false); setEditingIssue(issue) }} onStatusChange={(status) => void handleIssueStatusChange(issue, status)} onDelete={() => void handleIssueDelete(issue)} disabled={issueState.isMutating} />}
               </article>
             ))}
           </div>
@@ -149,5 +162,5 @@ function IssueFilters({ filters, onChange }: IssueFiltersProps) {
 interface FilterSelectProps { id: string; label: string; value: string; options: readonly [string, string][]; onChange: (value: string) => void }
 function FilterSelect({ id, label, value, options, onChange }: FilterSelectProps) { return <div><label htmlFor={id} className="mb-1.5 block text-xs font-medium text-slate-400">{label}</label><select id={id} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20">{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></div> }
 
-interface IssueRowProps { issue: Issue; onEdit: () => void; onDelete: () => void; disabled: boolean }
-function IssueRow({ issue, onEdit, onDelete, disabled }: IssueRowProps) { return <div><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div className="min-w-0"><h3 className="font-medium text-white">{issue.title}</h3><p className="mt-1 text-sm leading-6 text-slate-400">{issue.description ?? 'No description.'}</p></div><span className={`shrink-0 self-start rounded-full border px-2.5 py-1 text-xs ${issue.status === 'done' ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : issue.status === 'in_progress' ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100' : 'border-white/15 text-slate-400'}`}>{statusLabel(issue.status)}</span></div><div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500"><span className="rounded-full border border-white/10 px-2 py-1 capitalize">{issue.type}</span><span className="rounded-full border border-white/10 px-2 py-1 capitalize">{issue.priority} priority</span><span className="ml-auto flex gap-2"><button type="button" onClick={onEdit} className="rounded px-2 py-1 text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">Edit</button><button type="button" onClick={onDelete} disabled={disabled} className="rounded px-2 py-1 text-rose-200/80 transition hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200">Delete</button></span></div></div> }
+interface IssueRowProps { issue: Issue; onEdit: () => void; onStatusChange: (status: Issue['status']) => void; onDelete: () => void; disabled: boolean }
+function IssueRow({ issue, onEdit, onStatusChange, onDelete, disabled }: IssueRowProps) { return <div><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div className="min-w-0"><h3 className="font-medium text-white">{issue.title}</h3><p className="mt-1 text-sm leading-6 text-slate-400">{issue.description ?? 'No description.'}</p></div><label className={`inline-flex shrink-0 self-start rounded-full border px-2.5 py-1 text-xs ${issue.status === 'done' ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : issue.status === 'in_progress' ? 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100' : 'border-white/15 text-slate-400'}`}><span className="sr-only">Status for {issue.title}</span><select aria-label={`Status for ${issue.title}`} value={issue.status} onChange={(event) => onStatusChange(event.target.value as Issue['status'])} disabled={disabled} className="max-w-[8rem] cursor-pointer bg-transparent font-medium outline-none disabled:cursor-not-allowed"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="done">Done</option></select></label></div><div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500"><span className="rounded-full border border-white/10 px-2 py-1 capitalize">{issue.type}</span><span className="rounded-full border border-white/10 px-2 py-1 capitalize">{issue.priority} priority</span><span className="ml-auto flex gap-2"><button type="button" onClick={onEdit} className="rounded px-2 py-1 text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">Edit</button><button type="button" onClick={onDelete} disabled={disabled} className="rounded px-2 py-1 text-rose-200/80 transition hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200">Delete</button></span></div></div> }

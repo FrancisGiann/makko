@@ -27,7 +27,7 @@ export function LoginPage() {
       return
     }
 
-    const signedIn = await signIn(email, password)
+    const signedIn = await signIn(email.trim(), password)
     if (signedIn) navigate(destination, { replace: true })
   }
 
@@ -80,7 +80,7 @@ export function LoginPage() {
       </form>
       <p className="mt-6 text-center text-sm text-slate-400">
         New to Makko?{' '}
-        <Link to="/signup" state={{ from: destination }} className="font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-4 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+        <Link to="/signup" state={{ from: destination }} className="inline-flex min-h-6 items-center rounded font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-4 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
           Create an account
         </Link>
       </p>

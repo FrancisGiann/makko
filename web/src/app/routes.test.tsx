@@ -57,4 +57,17 @@ describe('application routes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
   })
+
+  it('renders the protected dashboard route after authentication', async () => {
+    renderRoutes('/app/dashboard', true)
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+  })
+
+  it('renders the public not-found page for unknown routes', async () => {
+    renderRoutes('/somewhere-unknown')
+
+    expect(await screen.findByRole('heading', { name: 'That page isn’t in the current.' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Return home' })).toHaveAttribute('href', '/')
+  })
 })

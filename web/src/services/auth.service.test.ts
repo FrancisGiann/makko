@@ -51,6 +51,16 @@ describe('auth service', () => {
     })
   })
 
+  it('normalizes sign-up email before sending credentials', async () => {
+    const signUp = vi.fn(async () => ({ data: { session: null, user: createSession().user }, error: null }))
+    const client = createClient({ signUp })
+    const service = createAuthService(client)
+
+    await service.signUp('  builder@example.com  ', 'correct horse')
+
+    expect(signUp).toHaveBeenCalledWith({ email: 'builder@example.com', password: 'correct horse' })
+  })
+
   it('cleans up the auth state subscription', () => {
     const unsubscribe = vi.fn()
     const client = createClient({

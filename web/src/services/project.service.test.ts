@@ -41,11 +41,44 @@ describe('project service', () => {
     expect(query.order).toHaveBeenCalledWith('updated_at', { ascending: false })
   })
 
+  it('returns an empty list and a null result for missing projects', async () => {
+    const emptyQuery = new FakeQuery({ data: [], error: null })
+    const emptyService = createProjectService(createClient(emptyQuery))
+    await expect(emptyService.listProjects('owner-1')).resolves.toEqual([])
+
+    const missingQuery = new FakeQuery({ data: null, error: null })
+    const missingService = createProjectService(createClient(missingQuery))
+    await expect(missingService.getProject('owner-1', 'project-missing')).resolves.toBeNull()
+    expect(missingQuery.eq).toHaveBeenNthCalledWith(1, 'id', 'project-missing')
+    expect(missingQuery.eq).toHaveBeenNthCalledWith(2, 'owner_id', 'owner-1')
+  })
+
   it('normalizes create input before inserting', async () => {
     const query = new FakeQuery({ data: project, error: null })
     const service = createProjectService(createClient(query))
     await service.createProject('owner-1', { name: '  Makko  ', description: '  A place  ', tags: [' web '] })
     expect(query.insert).toHaveBeenCalledWith({ owner_id: 'owner-1', name: 'Makko', description: 'A place', tags: ['web'] })
+  })
+
+  it('normalizes updates and scopes them to both project and owner', async () => {
+    const query = new FakeQuery({ data: project, error: null })
+    const service = createProjectService(createClient(query))
+
+    await service.updateProject('owner-1', 'project-1', { name: '  Renamed  ', description: '  Updated  ', tags: [' web '] })
+
+    expect(query.update).toHaveBeenCalledWith({ name: 'Renamed', description: 'Updated', tags: ['web'] })
+    expect(query.eq).toHaveBeenNthCalledWith(1, 'id', 'project-1')
+    expect(query.eq).toHaveBeenNthCalledWith(2, 'owner_id', 'owner-1')
+  })
+
+  it('scopes successful deletes to both project and owner', async () => {
+    const query = new FakeQuery({ data: { id: 'project-1' }, error: null })
+    const service = createProjectService(createClient(query))
+
+    await expect(service.deleteProject('owner-1', 'project-1')).resolves.toBeUndefined()
+
+    expect(query.eq).toHaveBeenNthCalledWith(1, 'id', 'project-1')
+    expect(query.eq).toHaveBeenNthCalledWith(2, 'owner_id', 'owner-1')
   })
 
   it('surfaces Supabase errors instead of treating failed writes as success', async () => {

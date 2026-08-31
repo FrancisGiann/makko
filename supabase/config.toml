@@ -5,4 +5,3 @@ major_version = 15
 
 [functions.github-sync]
 verify_jwt = true
-import_map = "./functions/github-sync/import_map.json"

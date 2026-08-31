@@ -1,4 +1,14 @@
-import type { ActivityLog, Issue, IssuePriority, IssueStatus, IssueType, Project } from './domain'
+import type {
+  ActivityLog,
+  GithubCommit,
+  GithubIssue,
+  GithubLink,
+  Issue,
+  IssuePriority,
+  IssueStatus,
+  IssueType,
+  Project,
+} from './domain'
 
 export interface Database {
   public: {
@@ -47,6 +57,27 @@ export interface Database {
       }
       activity_log: {
         Row: ActivityLog
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      github_links: {
+        Row: GithubLink
+        Insert: {
+          project_id: string
+          repo_full_name: string
+        }
+        Update: never
+        Relationships: []
+      }
+      github_commits: {
+        Row: GithubCommit
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      github_issues: {
+        Row: GithubIssue
         Insert: never
         Update: never
         Relationships: []

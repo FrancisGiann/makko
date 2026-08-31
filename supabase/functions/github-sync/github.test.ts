@@ -173,6 +173,17 @@ Deno.test("handler enforces method, CORS, content type, and auth seams", async (
     headers: { Origin: "https://evil.example" },
   }));
   assertEquals(originResponse.status, 403, "origin status");
+  const preflightResponse = await handler(new Request("https://function.example", {
+    method: "OPTIONS",
+    headers: {
+      Origin: "http://localhost:5173",
+      "Access-Control-Request-Method": "POST",
+      "Access-Control-Request-Headers": "authorization, apikey, content-type, x-client-info",
+    },
+  }));
+  assertEquals(preflightResponse.status, 204, "preflight status");
+  assertEquals(preflightResponse.headers.get("access-control-allow-methods"), "POST, OPTIONS", "preflight methods");
+  assertEquals(preflightResponse.headers.get("access-control-allow-headers"), "authorization, apikey, content-type, x-client-info", "preflight headers");
   const typeResponse = await handler(new Request("https://function.example", {
     method: "POST",
     headers: { "Content-Type": "text/plain" },

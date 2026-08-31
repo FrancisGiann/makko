@@ -28,6 +28,26 @@ describe('filterAndSortIssues', () => {
     expect(filterAndSortIssues(issues, { ...DEFAULT_ISSUE_FILTERS, sort: 'priority' }).map((issue) => issue.id)).toEqual(['b', 'd', 'c', 'a'])
   })
 
+  it('sorts titles case-insensitively and uses ids for exact ties', () => {
+    const tied = [
+      { ...issues[0], id: 'z', title: 'alpha' },
+      { ...issues[1], id: 'a', title: 'Alpha' },
+      { ...issues[2], id: 'm', title: 'Alpha' },
+    ]
+
+    expect(filterAndSortIssues(tied, { ...DEFAULT_ISSUE_FILTERS, sort: 'title' }).map((issue) => issue.id)).toEqual(['a', 'm', 'z'])
+  })
+
+  it('places invalid dates after valid dates without mutating the input', () => {
+    const dated = [
+      { ...issues[0], id: 'invalid', created_at: 'not-a-date' },
+      { ...issues[1], id: 'valid', created_at: '2026-04-01T00:00:00Z' },
+    ]
+
+    expect(filterAndSortIssues(dated, DEFAULT_ISSUE_FILTERS).map((issue) => issue.id)).toEqual(['valid', 'invalid'])
+    expect(dated[0].id).toBe('invalid')
+  })
+
   it('does not mutate the fetched list', () => {
     const original = [...issues]
     filterAndSortIssues(issues, { ...DEFAULT_ISSUE_FILTERS, sort: 'title' })

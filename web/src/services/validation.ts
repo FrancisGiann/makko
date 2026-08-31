@@ -70,3 +70,14 @@ export function requireId(value: string, label: string): string {
   if (!id) throw new ValidationError(`${label} is required.`)
   return id
 }
+
+const githubRepositoryPattern = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/
+
+export function normalizeGithubRepository(value: string): string {
+  const repository = typeof value === 'string' ? value.trim() : ''
+  if (!repository) throw new ValidationError('GitHub repository is required.')
+  if (repository.length > 140 || !githubRepositoryPattern.test(repository)) {
+    throw new ValidationError('Use a GitHub repository in owner/name format.')
+  }
+  return repository
+}

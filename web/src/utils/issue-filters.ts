@@ -31,6 +31,15 @@ function compareDate(left: string, right: string): number {
   return leftTime - rightTime
 }
 
+function compareDateDescending(left: string, right: string): number {
+  const leftTime = Date.parse(left)
+  const rightTime = Date.parse(right)
+  if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) return 0
+  if (Number.isNaN(leftTime)) return 1
+  if (Number.isNaN(rightTime)) return -1
+  return rightTime - leftTime
+}
+
 export function filterAndSortIssues(issues: readonly Issue[], filters: IssueFilters): Issue[] {
   const filtered = issues.filter((issue) => (
     (filters.status === 'all' || issue.status === filters.status)
@@ -55,7 +64,7 @@ export function filterAndSortIssues(issues: readonly Issue[], filters: IssueFilt
         break
       case 'newest':
       default:
-        comparison = compareDate(right.created_at, left.created_at)
+        comparison = compareDateDescending(left.created_at, right.created_at)
         break
     }
 

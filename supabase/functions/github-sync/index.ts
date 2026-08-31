@@ -334,7 +334,7 @@ export function createGithubSyncHandler(
     if (request.method === "OPTIONS") {
       const headers = corsHeaders(request, env);
       headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-      headers.set("Access-Control-Allow-Headers", "authorization, content-type");
+      headers.set("Access-Control-Allow-Headers", "authorization, apikey, content-type, x-client-info");
       headers.set("Access-Control-Max-Age", "600");
       return new Response(null, { status: 204, headers });
     }

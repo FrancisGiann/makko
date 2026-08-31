@@ -13,13 +13,13 @@ export function PublicLayout() {
           <nav aria-label="Primary navigation" className="flex items-center gap-2 text-sm">
             <Link
               to="/login"
-              className="rounded-lg px-3 py-2 text-slate-300 transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+              className="whitespace-nowrap rounded-lg px-2 py-2 text-slate-300 transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 sm:px-3"
             >
               Sign in
             </Link>
             <Link
               to="/signup"
-              className="rounded-lg border border-cyan-200/30 bg-cyan-300/10 px-3 py-2 font-medium text-cyan-100 transition hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+              className="whitespace-nowrap rounded-lg border border-cyan-200/30 bg-cyan-300/10 px-2 py-2 font-medium text-cyan-100 transition hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 sm:px-3"
             >
               Create account
             </Link>
@@ -27,7 +27,7 @@ export function PublicLayout() {
         </div>
       </header>
       <Outlet />
-      <footer className="mx-auto max-w-6xl px-5 py-8 text-xs text-slate-500 sm:px-8">
+      <footer className="mx-auto max-w-6xl px-5 py-8 text-xs text-slate-400 sm:px-8">
         Makko · a calm command center for independent builders
       </footer>
     </div>

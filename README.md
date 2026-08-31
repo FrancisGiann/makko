@@ -44,9 +44,9 @@ Run the Edge Function unit tests locally when Deno is installed:
 
 ```sh
 deno fmt --check supabase/functions/github-sync
-deno check --import-map supabase/functions/github-sync/import_map.json \
+deno check --config supabase/functions/github-sync/deno.json \
   supabase/functions/github-sync/index.ts supabase/functions/github-sync/github.ts
-deno test --import-map supabase/functions/github-sync/import_map.json \
+deno test --config supabase/functions/github-sync/deno.json \
   supabase/functions/github-sync/github.test.ts
 ```
 

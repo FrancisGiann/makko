@@ -12,6 +12,11 @@
     text-rendering: optimizeLegibility;
   }
 
+  :root[data-theme='light'] {
+    color-scheme: light;
+    background: #f5f7fb;
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -32,4 +37,53 @@
     outline: 2px solid #a5f3fc;
     outline-offset: 3px;
   }
+}
+
+/* Keep the existing Phase 3/4 component language intact while making its
+   palette semantic through the theme root. */
+:root[data-theme='light'] [class~='bg-slate-950'],
+:root[data-theme='light'] [class*='bg-slate-950/'] {
+  background-color: #f8fafc !important;
+}
+
+:root[data-theme='light'] [class~='bg-slate-900'],
+:root[data-theme='light'] [class*='bg-slate-900/'] {
+  background-color: #ffffff !important;
+}
+
+:root[data-theme='light'] [class~='text-white'] {
+  color: #122033 !important;
+}
+
+:root[data-theme='light'] [class~='text-slate-100'],
+:root[data-theme='light'] [class~='text-slate-200'],
+:root[data-theme='light'] [class~='text-slate-300'] {
+  color: #26364c !important;
+}
+
+:root[data-theme='light'] [class~='text-slate-400'] {
+  color: #52647b !important;
+}
+
+:root[data-theme='light'] [class~='text-slate-500'],
+:root[data-theme='light'] [class~='text-slate-600'] {
+  color: #6b7b90 !important;
+}
+
+:root[data-theme='light'] [class~='text-cyan-100'],
+:root[data-theme='light'] [class~='text-cyan-200'] {
+  color: #0e7490 !important;
+}
+
+:root[data-theme='light'] [class*='border-white/'] {
+  border-color: rgb(15 23 42 / 0.13) !important;
+}
+
+:root[data-theme='light'] [class*='bg-white/'] {
+  background-color: rgb(15 23 42 / 0.06) !important;
+}
+
+:root[data-theme='light'] body {
+  background: #f5f7fb;
+  color: #122033;
 }

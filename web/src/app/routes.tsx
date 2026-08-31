@@ -14,6 +14,8 @@ import { NotFoundPage } from '../pages/not-found-page'
 import { SessionErrorPage } from '../pages/session-error-page'
 import { ProjectsPage } from '../features/projects/projects-page'
 import { ProjectDetailPage } from '../features/projects/project-detail-page'
+import { DashboardPage } from '../features/dashboard/dashboard-page'
+import { ThemeProvider } from '../features/theme/theme-context'
 
 export function ProtectedRoute() {
   const { state } = useAuth()
@@ -40,26 +42,29 @@ export function PublicOnlyRoute() {
 
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route element={<PublicLayout />}>
-        <Route index element={<HomePage />} />
-        <Route element={<AuthLayout />}>
-          <Route element={<PublicOnlyRoute />}>
-            <Route path="login" element={<LoginPage />} />
-            <Route path="signup" element={<SignupPage />} />
+    <ThemeProvider>
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route element={<AuthLayout />}>
+            <Route element={<PublicOnlyRoute />}>
+              <Route path="login" element={<LoginPage />} />
+              <Route path="signup" element={<SignupPage />} />
+            </Route>
           </Route>
         </Route>
-      </Route>
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
-          <Route path="app" element={<ProjectsPage />} />
-          <Route path="app/projects" element={<ProjectsPage />} />
-          <Route path="app/projects/:projectId" element={<ProjectDetailPage />} />
-          <Route path="app/account" element={<AccountPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="app" element={<ProjectsPage />} />
+            <Route path="app/projects" element={<ProjectsPage />} />
+            <Route path="app/dashboard" element={<DashboardPage />} />
+            <Route path="app/projects/:projectId" element={<ProjectDetailPage />} />
+            <Route path="app/account" element={<AccountPage />} />
+          </Route>
         </Route>
-      </Route>
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ThemeProvider>
   )
 }
 

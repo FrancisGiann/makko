@@ -42,11 +42,11 @@ export function HomePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
                   <p className="text-2xl font-semibold text-white">01</p>
-                  <p className="mt-1 text-xs text-slate-500">workspace</p>
+                  <p className="mt-1 text-xs text-slate-400">workspace</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
                   <p className="text-2xl font-semibold text-white">∞</p>
-                  <p className="mt-1 text-xs text-slate-500">possibilities</p>
+                  <p className="mt-1 text-xs text-slate-400">possibilities</p>
                 </div>
               </div>
             </div>
