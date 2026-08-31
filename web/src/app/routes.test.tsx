@@ -36,14 +36,14 @@ describe('application routes', () => {
     await user.type(screen.getByLabelText('Password'), 'correct horse')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByRole('heading', { name: /you’re in/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
     expect(screen.getByText('current route: /app?view=account#details')).toBeInTheDocument()
   })
 
   it('does not show public auth forms to an authenticated user', async () => {
     renderRoutes('/login', true)
 
-    expect(await screen.findByRole('heading', { name: /you’re in/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
   })
 
   it('rejects an external redirect target', async () => {
@@ -55,6 +55,6 @@ describe('application routes', () => {
       </AuthProvider>,
     )
 
-    expect(await screen.findByRole('heading', { name: /you’re in/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Projects' })).toBeInTheDocument()
   })
 })

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 
 import { MakkoMark } from '../components/makko-mark'
 import { StatusMessage } from '../components/status-message'
@@ -10,8 +10,13 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-white/10 bg-slate-950/90">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
-          <MakkoMark />
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
+          <div className="flex items-center gap-8">
+            <MakkoMark />
+            <nav aria-label="Workspace navigation" className="flex items-center gap-1">
+              <NavLink to="/app" className={({ isActive }) => `rounded-lg px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${isActive ? 'bg-cyan-300/10 text-cyan-100' : 'text-slate-400 hover:text-white'}`}>Projects</NavLink>
+            </nav>
+          </div>
           <div className="flex items-center gap-3">
             <p className="hidden max-w-48 truncate text-sm text-slate-400 sm:block" title={state.session?.user.email ?? undefined}>
               {state.session?.user.email ?? 'Signed in'}

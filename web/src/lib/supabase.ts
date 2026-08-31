@@ -1,14 +1,15 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 import { getPublicSupabaseConfig } from './config'
+import type { Database } from '../types/database'
 
-let browserClient: SupabaseClient | null = null
+let browserClient: SupabaseClient<Database> | null = null
 
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient<Database> {
   if (browserClient) return browserClient
 
   const config = getPublicSupabaseConfig()
-  browserClient = createClient(config.url, config.publishableKey, {
+  browserClient = createClient<Database>(config.url, config.publishableKey, {
     auth: {
       autoRefreshToken: true,
       detectSessionInUrl: true,

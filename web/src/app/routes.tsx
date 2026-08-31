@@ -12,6 +12,8 @@ import { AccountPage } from '../pages/account-page'
 import { HomePage } from '../pages/home-page'
 import { NotFoundPage } from '../pages/not-found-page'
 import { SessionErrorPage } from '../pages/session-error-page'
+import { ProjectsPage } from '../features/projects/projects-page'
+import { ProjectDetailPage } from '../features/projects/project-detail-page'
 
 export function ProtectedRoute() {
   const { state } = useAuth()
@@ -50,7 +52,10 @@ export function AppRoutes() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
-          <Route path="app" element={<AccountPage />} />
+          <Route path="app" element={<ProjectsPage />} />
+          <Route path="app/projects" element={<ProjectsPage />} />
+          <Route path="app/projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="app/account" element={<AccountPage />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />
