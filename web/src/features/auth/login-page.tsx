@@ -32,13 +32,12 @@ export function LoginPage() {
   }
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/20 sm:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Welcome back</p>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white">Sign in to Makko</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-400">Pick up where you left off, with your work kept private.</p>
-      <form className="mt-8 space-y-5" onSubmit={(event) => void handleSubmit(event)} noValidate>
+    <div className="makko-surface-raised rounded-3xl p-6 sm:p-8">
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Sign in to Makko</h1>
+      <p className="mt-2 text-sm font-normal leading-6 text-slate-600 dark:text-slate-400">Pick up where you left off, with your work kept private.</p>
+      <form className="mt-7 space-y-5" onSubmit={(event) => void handleSubmit(event)} noValidate>
         <div>
-          <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-slate-200">Email</label>
+          <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">Email</label>
           <input
             id="login-email"
             name="email"
@@ -50,11 +49,11 @@ export function LoginPage() {
             aria-required="true"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'login-error' : undefined}
-            className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+            className="makko-field w-full px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
         </div>
         <div>
-          <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-slate-200">Password</label>
+          <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">Password</label>
           <input
             id="login-password"
             name="password"
@@ -66,21 +65,21 @@ export function LoginPage() {
             aria-required="true"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'login-error' : undefined}
-            className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+            className="makko-field w-full px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
         </div>
         {error && <div id="login-error"><StatusMessage kind="error">{error}</StatusMessage></div>}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-xl bg-cyan-200 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+          className="makko-control makko-primary makko-focus w-full px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-400">
+      <p className="mt-6 text-center text-sm font-normal text-slate-600 dark:text-slate-400">
         New to Makko?{' '}
-        <Link to="/signup" state={{ from: destination }} className="inline-flex min-h-6 items-center rounded font-medium text-cyan-200 underline decoration-cyan-200/40 underline-offset-4 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+        <Link to="/signup" state={{ from: destination }} className="makko-focus inline-flex min-h-11 items-center font-medium text-cyan-700 underline decoration-cyan-500/40 underline-offset-4 hover:text-cyan-800 dark:text-cyan-300 dark:decoration-cyan-300/40 dark:hover:text-cyan-200">
           Create an account
         </Link>
       </p>

@@ -5,15 +5,14 @@ export function SessionErrorPage() {
   const { state, retrySession } = useAuth()
 
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 px-6 text-slate-100">
-      <section className="w-full max-w-lg rounded-3xl border border-rose-200/20 bg-slate-900/80 p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-rose-200">Session unavailable</p>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">We couldn’t restore your session.</h1>
+    <main className="grid min-h-dvh place-items-center bg-[#f4f7fb] px-5 py-10 text-slate-900 transition-colors dark:bg-[#070d18] dark:text-slate-100">
+      <section className="makko-surface-raised w-full max-w-lg rounded-3xl border-rose-500/30 p-6 sm:p-8">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">We couldn’t restore your session.</h1>
         <div className="mt-5"><StatusMessage kind="error">{state.error ?? 'Please try again.'}</StatusMessage></div>
         <button
           type="button"
           onClick={() => void retrySession()}
-          className="mt-6 rounded-xl bg-cyan-200 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+          className="makko-control makko-primary makko-focus mt-6 w-full px-5 text-sm font-semibold"
         >
           Try again
         </button>

@@ -2,14 +2,13 @@ import { Link } from 'react-router-dom'
 
 export function NotFoundPage() {
   return (
-    <main className="grid min-h-[calc(100vh-82px)] place-items-center px-5 py-16 text-center sm:px-8">
+    <main className="grid min-h-[70dvh] place-items-center px-5 py-16 text-center sm:px-8">
       <section>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">404 · off course</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white">That page isn’t in the current.</h1>
-        <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-slate-400">The link may be old, or the page may have moved.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">That page isn’t in the current.</h1>
+        <p className="mx-auto mt-3 max-w-md text-sm font-normal leading-7 text-slate-600 dark:text-slate-400">The link may be old, or the page may have moved.</p>
         <Link
           to="/"
-          className="mt-8 inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-slate-200 transition hover:border-cyan-200/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200"
+          className="makko-control makko-primary makko-focus mt-8 inline-flex items-center gap-2 px-6 text-sm font-semibold"
         >
           Return home
         </Link>

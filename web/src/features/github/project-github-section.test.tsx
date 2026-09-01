@@ -33,6 +33,7 @@ describe('ProjectGithubSection', () => {
     expect(commitLink).toHaveAttribute('target', '_blank')
     expect(commitLink).toHaveAttribute('rel', 'noreferrer')
     expect(issueLink).toHaveAttribute('target', '_blank')
+    expect(screen.getByText('External / read-only')).toBeInTheDocument()
     expect(screen.getByText('External · read-only')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
   })

@@ -46,7 +46,9 @@ export function ProjectForm({ initialProject, isSubmitting, error, onCancel, onS
   return (
     <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)} noValidate>
       <div>
-        <label htmlFor="project-name" className="mb-2 block text-sm font-medium text-slate-200">Project name</label>
+        <label htmlFor="project-name" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">
+          Project name
+        </label>
         <input
           id="project-name"
           value={input.name}
@@ -54,41 +56,53 @@ export function ProjectForm({ initialProject, isSubmitting, error, onCancel, onS
           maxLength={120}
           required
           aria-required="true"
-          className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+          className="makko-field makko-readable w-full px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           placeholder="What are you building?"
         />
       </div>
       <div>
-        <label htmlFor="project-description" className="mb-2 block text-sm font-medium text-slate-200">Description <span className="font-normal text-slate-500">(optional)</span></label>
+        <label htmlFor="project-description" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">
+          Description <span className="text-xs font-normal text-slate-500">(optional)</span>
+        </label>
         <textarea
           id="project-description"
           value={input.description}
           onChange={(event) => setInput((current) => ({ ...current, description: event.target.value }))}
           maxLength={5000}
           rows={4}
-          className="w-full resize-y rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+          className="makko-field makko-readable w-full resize-y px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           placeholder="A short note about the project's purpose"
         />
       </div>
       <div>
-        <label htmlFor="project-tags" className="mb-2 block text-sm font-medium text-slate-200">Tags <span className="font-normal text-slate-500">(comma separated, optional)</span></label>
+        <label htmlFor="project-tags" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">
+          Tags <span className="text-xs font-normal text-slate-500">(comma separated, optional)</span>
+        </label>
         <input
           id="project-tags"
           value={input.tagsText}
           onChange={(event) => setInput((current) => ({ ...current, tagsText: event.target.value }))}
           maxLength={MAX_PROJECT_TAG_INPUT_LENGTH}
-          className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+          className="makko-field makko-readable w-full px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           placeholder="web, personal, launch"
         />
       </div>
       {error && <StatusMessage kind="error">{error}</StatusMessage>}
-      <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-cyan-200/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="makko-control makko-secondary makko-focus px-4 text-sm font-semibold"
+          >
             Cancel
           </button>
         )}
-        <button type="submit" disabled={isSubmitting} className="rounded-xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="makko-control makko-primary makko-focus px-6 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
           {isSubmitting ? 'Saving…' : isEditing ? 'Save changes' : 'Create project'}
         </button>
       </div>

@@ -7,6 +7,7 @@ import { AuthProvider } from '../auth/auth-context'
 import { createFakeAuthService, createSession } from '../../test/test-auth'
 import type { DashboardService, DashboardStats } from '../../services/dashboard.service'
 import { DashboardPage } from './dashboard-page'
+import { githubUsernameStorageKey, loadGithubUsername, normalizeGithubUsername } from '../../utils/github-username'
 
 const stats = {
   projectCount: 1,
@@ -31,6 +32,8 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
     expect(screen.getByText(/Counts below include internal Makko issues only/)).toBeInTheDocument()
     expect(await screen.findByText('Internal Makko issues')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Internal issue completion' })).toHaveAttribute('aria-valuenow', '33')
+    expect(screen.getByRole('progressbar', { name: 'Internal issue completion' })).toHaveAttribute('aria-valuetext', '1 of 3 internal issues complete (33%)')
     expect(screen.getByText('To do + in progress')).toBeInTheDocument()
     expect(screen.queryByText('External · read-only')).not.toBeInTheDocument()
   })
@@ -40,6 +43,7 @@ describe('DashboardPage', () => {
     renderPage(service)
 
     expect(await screen.findByText('Your dashboard is ready for its first project.')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Internal issue completion' })).toHaveAttribute('aria-valuetext', 'No internal issues yet. (0%)')
     expect(screen.getByRole('link', { name: 'Go to projects' })).toHaveAttribute('href', '/app')
   })
 
@@ -62,5 +66,26 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(retryService.getStats).toHaveBeenCalledTimes(2))
     expect(await screen.findByText('All issues')).toBeInTheDocument()
     unmount()
+  })
+
+  it('validates GitHub usernames and scopes persisted values to the signed-in user', () => {
+    localStorage.clear()
+    const userA = createSession('alice@example.com').user.id
+    const userB = '00000000-0000-0000-0000-000000000002'
+    const userAKey = githubUsernameStorageKey(userA)
+
+    expect(normalizeGithubUsername(' octocat ')).toBe('octocat')
+    expect(normalizeGithubUsername('bad/name')).toBeNull()
+    expect(userAKey).toBeTruthy()
+
+    localStorage.setItem('makko_github_username', 'legacy-user')
+    localStorage.setItem(userAKey!, ' octocat ')
+    expect(loadGithubUsername(userA)).toBe('octocat')
+    expect(loadGithubUsername(userB)).toBe('')
+    expect(localStorage.getItem('makko_github_username')).toBeNull()
+
+    localStorage.setItem(userAKey!, 'bad/name')
+    expect(loadGithubUsername(userA)).toBe('')
+    localStorage.clear()
   })
 })

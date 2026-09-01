@@ -10,6 +10,7 @@ interface IssueFormProps {
   onCancel?: () => void
   onSubmit: (input: IssueInput) => Promise<Issue | null>
 }
+
 function inputFromIssue(issue?: Issue | null): IssueInput {
   return {
     title: issue?.title ?? '',
@@ -34,7 +35,7 @@ export function IssueForm({ initialIssue, isSubmitting, error, onCancel, onSubmi
   return (
     <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)} noValidate>
       <div>
-        <label htmlFor="issue-title" className="mb-2 block text-sm font-medium text-slate-200">Title</label>
+        <label htmlFor="issue-title" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">Title</label>
         <input
           id="issue-title"
           value={input.title}
@@ -42,19 +43,21 @@ export function IssueForm({ initialIssue, isSubmitting, error, onCancel, onSubmi
           maxLength={200}
           required
           aria-required="true"
-          className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+          className="makko-field makko-readable w-full px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           placeholder="What needs attention?"
         />
       </div>
       <div>
-        <label htmlFor="issue-description" className="mb-2 block text-sm font-medium text-slate-200">Description <span className="font-normal text-slate-500">(optional)</span></label>
+        <label htmlFor="issue-description" className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">
+          Description <span className="text-xs font-normal text-slate-500">(optional)</span>
+        </label>
         <textarea
           id="issue-description"
           value={input.description}
           onChange={(event) => setInput((current) => ({ ...current, description: event.target.value }))}
           maxLength={10000}
           rows={4}
-          className="w-full resize-y rounded-xl border border-white/15 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20"
+          className="makko-field makko-readable w-full resize-y px-4 py-3 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500"
           placeholder="Leave enough context for your future self"
         />
       </div>
@@ -64,9 +67,21 @@ export function IssueForm({ initialIssue, isSubmitting, error, onCancel, onSubmi
         <SelectField id="issue-status" label="Status" value={input.status} onChange={(value) => setInput((current) => ({ ...current, status: value as IssueInput['status'] }))} options={[['todo', 'To do'], ['in_progress', 'In progress'], ['done', 'Done']]} />
       </div>
       {error && <StatusMessage kind="error">{error}</StatusMessage>}
-      <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
-        {onCancel && <button type="button" onClick={onCancel} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-cyan-200/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">Cancel</button>}
-        <button type="submit" disabled={isSubmitting} className="rounded-xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100">
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="makko-control makko-secondary makko-focus px-4 text-sm font-semibold"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="makko-control makko-primary makko-focus px-6 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
           {isSubmitting ? 'Saving…' : isEditing ? 'Save changes' : 'Create issue'}
         </button>
       </div>
@@ -85,9 +100,18 @@ interface SelectFieldProps {
 function SelectField({ id, label, value, options, onChange }: SelectFieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-medium text-slate-200">{label}</label>
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none transition focus:border-cyan-200/60 focus:ring-2 focus:ring-cyan-200/20">
-        {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+      <label htmlFor={id} className="mb-2 block text-sm font-medium text-slate-800 dark:text-slate-200">{label}</label>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="makko-field w-full px-3 py-3 text-sm font-medium"
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+            {optionLabel}
+          </option>
+        ))}
       </select>
     </div>
   )

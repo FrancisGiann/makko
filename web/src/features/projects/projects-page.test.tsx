@@ -45,6 +45,7 @@ describe('ProjectsPage', () => {
     renderPage(service)
 
     expect(await screen.findByRole('link', { name: 'Launch notes' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Launch notes project identity' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'New project' }))
     expect(screen.getByLabelText(/Tags/)).toHaveAttribute('maxLength', '838')
     await user.type(screen.getByLabelText('Project name'), 'Fresh idea')

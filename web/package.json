@@ -9,12 +9,15 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "check": "tsc -b --pretty false",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
+    "lucide-react": "^1.38.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-github-calendar": "^5.0.9",
     "react-router-dom": "^7.18.3"
   },
   "devDependencies": {

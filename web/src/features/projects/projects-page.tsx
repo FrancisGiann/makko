@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowRight, FolderOpen } from 'lucide-react'
 
+import { ProjectIdentity } from '../../components/project-identity'
 import { StatusMessage } from '../../components/status-message'
 import { useProjects } from '../../hooks/use-projects'
 import type { ProjectService } from '../../services/project.service'
@@ -27,27 +29,26 @@ export function ProjectsPage({ service }: ProjectsPageProps) {
   const isLoading = status === 'loading' && projects.length === 0
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Your workspace</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Projects</h1>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-slate-400">Keep the shape of each thing you’re building close at hand.</p>
+    <main className="makko-page">
+      <header className="animate-fade-up flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">Projects</h1>
+          <p className="mt-2 max-w-xl text-sm font-normal leading-6 text-slate-600 dark:text-slate-400">Keep the shape of each thing you’re building close at hand.</p>
         </div>
         <button
           type="button"
           onClick={() => { setEditingProject(null); setShowCreateForm((open) => !open) }}
           aria-expanded={showCreateForm}
-          className="rounded-xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+          className="makko-control makko-primary makko-focus inline-flex items-center justify-center px-5 text-sm font-semibold"
         >
           {showCreateForm ? 'Close form' : 'New project'}
         </button>
-      </div>
+      </header>
 
       {showCreateForm && (
-        <section className="mt-8 rounded-3xl border border-cyan-200/15 bg-slate-900/70 p-6 shadow-2xl shadow-cyan-950/10 sm:p-8" aria-labelledby="create-project-heading">
-          <h2 id="create-project-heading" className="text-xl font-semibold text-white">Start a project</h2>
-          <p className="mt-2 text-sm text-slate-400">Give it enough context that the next step feels obvious.</p>
+        <section className="animate-fade-up mt-8 rounded-3xl border border-cyan-500/25 bg-cyan-500/[0.06] p-6 shadow-sm dark:border-cyan-400/20 dark:bg-cyan-400/[0.06] sm:p-8" aria-labelledby="create-project-heading">
+          <h2 id="create-project-heading" className="text-xl font-semibold text-slate-900 dark:text-white">Start a project</h2>
+          <p className="mt-1 text-sm font-normal text-slate-600 dark:text-slate-400">Give it enough context that the next step feels obvious.</p>
           <div className="mt-6">
             <ProjectForm
               isSubmitting={isMutating}
@@ -65,75 +66,149 @@ export function ProjectsPage({ service }: ProjectsPageProps) {
 
       {error && !showCreateForm && <div className="mt-8"><StatusMessage kind="error">{error}</StatusMessage></div>}
 
-      {isLoading && (
-        <div className="mt-10 rounded-3xl border border-white/10 bg-slate-900/50 px-6 py-12 text-center" role="status">
-          <p className="text-sm text-slate-400">Loading your projects…</p>
-        </div>
-      )}
+      {isLoading && <ProjectsSkeleton />}
 
       {!isLoading && status === 'error' && projects.length === 0 && !error && (
         <div className="mt-10"><StatusMessage kind="error">Unable to load your projects.</StatusMessage></div>
       )}
 
       {!isLoading && status !== 'error' && projects.length === 0 && (
-        <section className="mt-10 rounded-3xl border border-dashed border-white/15 bg-slate-900/40 px-6 py-14 text-center">
-          <p className="text-sm font-medium text-slate-200">No projects yet.</p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Create a project to give your ideas a place to gather.</p>
+        <section className="animate-fade-up delay-100 mt-10 rounded-3xl border border-dashed border-cyan-500/30 bg-cyan-500/[0.04] p-8 text-center dark:border-cyan-400/20 dark:bg-cyan-400/[0.04] sm:p-14">
+          <div className="mx-auto mb-4 grid size-14 place-items-center rounded-3xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-300">
+            <FolderOpen className="size-6" />
+          </div>
+          <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">No projects yet.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm font-normal leading-6 text-slate-600 dark:text-slate-400">Create a project to give your ideas a place to gather.</p>
           {!showCreateForm && (
-            <button type="button" onClick={() => setShowCreateForm(true)} className="mt-6 rounded-xl border border-cyan-200/30 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:border-cyan-200/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
-              Create your first project
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              className="makko-control makko-primary makko-focus mt-6 inline-flex items-center gap-2 px-5 text-sm font-semibold"
+            >
+              <span>Create your first project</span>
+              <ArrowRight className="size-4" aria-hidden="true" />
             </button>
           )}
         </section>
       )}
 
-      <div className="mt-10 grid gap-5 md:grid-cols-2">
-        {projects.map((project) => (
-          <article key={project.id} className="rounded-3xl border border-white/10 bg-slate-900/65 p-6 transition hover:border-cyan-200/25 sm:p-7">
-            {editingProject?.id === project.id ? (
-              <>
-                <h2 className="text-xl font-semibold text-white">Edit project</h2>
-                <div className="mt-5">
-                  <ProjectForm
-                    initialProject={project}
-                    isSubmitting={isMutating}
-                    error={error}
-                    onCancel={() => setEditingProject(null)}
-                    onSubmit={async (input) => {
-                      const updated = await updateProject(project.id, input)
-                      if (updated) setEditingProject(null)
-                      return updated
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <Link to={`/app/projects/${project.id}`} className="text-xl font-semibold text-white underline decoration-transparent underline-offset-4 transition hover:decoration-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
-                      {project.name}
-                    </Link>
-                    <p className="mt-2 text-xs text-slate-500">{formatDate(project.updated_at)}</p>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        {projects.map((project, index) => {
+          const delays = ['delay-0', 'delay-100', 'delay-200', 'delay-300', 'delay-400', 'delay-500']
+          const delayClass = delays[index % delays.length]
+          return (
+            <article
+              key={project.id}
+              className={`makko-surface animate-fade-up ${delayClass} group relative flex min-w-0 flex-col justify-between rounded-3xl p-6 transition-all duration-200 hover:border-slate-300 hover:shadow-md dark:hover:border-white/20 sm:p-7`}
+            >
+              {editingProject?.id === project.id ? (
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Edit project</h2>
+                  <div className="mt-5">
+                    <ProjectForm
+                      initialProject={project}
+                      isSubmitting={isMutating}
+                      error={error}
+                      onCancel={() => setEditingProject(null)}
+                      onSubmit={async (input) => {
+                        const updated = await updateProject(project.id, input)
+                        if (updated) setEditingProject(null)
+                        return updated
+                      }}
+                    />
                   </div>
-                  <span className="shrink-0 rounded-full border border-cyan-200/15 bg-cyan-300/5 px-3 py-1 text-xs text-cyan-100">Project</span>
                 </div>
-                <p className="mt-5 min-h-12 text-sm leading-6 text-slate-400">{project.description ?? 'No description yet.'}</p>
-                {project.tags.length > 0 && (
-                  <ul className="mt-5 flex flex-wrap gap-2" aria-label={`${project.name} tags`}>
-                    {project.tags.map((tag) => <li key={tag} className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-400">{tag}</li>)}
-                  </ul>
-                )}
-                <div className="mt-7 flex flex-wrap gap-3 border-t border-white/10 pt-5">
-                  <Link to={`/app/projects/${project.id}`} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-200/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">Open project</Link>
-                  <button type="button" onClick={() => { setShowCreateForm(false); setEditingProject(project) }} className="rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">Edit</button>
-                  <button type="button" onClick={() => void handleDelete(project)} disabled={isMutating} className="rounded-lg px-3 py-2 text-sm text-rose-200/80 transition hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200">Delete</button>
-                </div>
-              </>
-            )}
-          </article>
-        ))}
+              ) : (
+                <>
+                  <div>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <ProjectIdentity name={project.name} tags={project.tags} size="sm" />
+                      <div className="min-w-0">
+                        <Link
+                          to={`/app/projects/${project.id}`}
+                          className="makko-focus makko-readable inline-flex min-h-11 max-w-full items-center text-lg font-semibold text-slate-900 underline decoration-transparent underline-offset-4 transition hover:text-cyan-700 hover:decoration-cyan-600 dark:text-white dark:hover:text-cyan-200 dark:hover:decoration-cyan-300"
+                        >
+                          {project.name}
+                        </Link>
+                        <p className="mt-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">{formatDate(project.updated_at)}</p>
+                      </div>
+                    </div>
+                    <p className="makko-readable mt-4 min-h-12 text-sm font-normal leading-6 text-slate-600 dark:text-slate-300">{project.description ?? 'No description yet.'}</p>
+                    {project.tags.length > 0 && (
+                      <ul className="mt-4 flex flex-wrap gap-1.5" aria-label={`${project.name} tags`}>
+                        {project.tags.map((tag) => (
+                          <li key={tag} className="rounded-full border border-slate-200/70 bg-slate-100/80 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
+                            {tag}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="mt-6 flex flex-wrap items-center gap-2.5 border-t border-slate-100/80 pt-5 dark:border-white/[0.06]">
+                    <Link
+                      to={`/app/projects/${project.id}`}
+                      className="makko-control makko-secondary makko-focus inline-flex items-center px-4 text-sm font-semibold"
+                    >
+                      Open project
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCreateForm(false); setEditingProject(project) }}
+                      className="makko-control makko-focus makko-ghost px-3.5 text-sm font-semibold"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(project)}
+                      disabled={isMutating}
+                      className="makko-control makko-focus makko-danger px-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          )
+        })}
       </div>
     </main>
+  )
+}
+
+function ProjectsSkeleton() {
+  return (
+    <div className="mt-8 grid gap-6 md:grid-cols-2" role="status" aria-label="Loading your projects">
+      <span className="sr-only">Loading your projects…</span>
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="makko-surface flex flex-col justify-between rounded-3xl p-6 sm:p-7"
+        >
+          <div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <div className="h-6 w-44 rounded-lg bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+                <div className="h-3.5 w-24 rounded bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+              </div>
+            </div>
+            <div className="mt-5 space-y-2">
+              <div className="h-4 w-5/6 rounded bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+              <div className="h-4 w-3/5 rounded bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+            </div>
+            <div className="mt-5 flex gap-2">
+              <div className="h-5 w-16 rounded-full bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+              <div className="h-5 w-20 rounded-full bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+            </div>
+          </div>
+          <div className="mt-6 flex items-center gap-3 border-t border-slate-100/80 pt-5 dark:border-white/[0.06]">
+            <div className="h-9 w-28 rounded-2xl bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+            <div className="h-9 w-16 rounded-2xl bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+            <div className="h-9 w-16 rounded-2xl bg-slate-200/80 dark:bg-white/5 animate-shimmer" />
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }

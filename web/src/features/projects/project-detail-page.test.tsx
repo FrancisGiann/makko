@@ -26,6 +26,7 @@ describe('ProjectDetailPage', () => {
     const user = userEvent.setup()
     render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
 
+    expect(screen.getByRole('img', { name: 'Makko project identity' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'New issue' }))
     expect(screen.getByRole('heading', { name: 'Create an issue' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Edit' }))
@@ -82,6 +83,9 @@ describe('ProjectDetailPage', () => {
     render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
     expect(await screen.findByText('No issues yet.')).toBeInTheDocument()
     expect(screen.getByText('Activity will appear as you work.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Repository commits' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Makko changes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /activity heatmap/i })).not.toBeInTheDocument()
   })
 
   it('keeps a failed issue create visible and reports the mutation error', async () => {

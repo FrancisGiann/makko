@@ -1,20 +1,61 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, :root:not([data-theme="light"]), :root:not([data-theme="light"]) *));
+
 @theme {
-  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+  --color-brand-700: #0e7490;
+  --color-ocean-950: #070d18;
+  --color-ocean-900: #0c1527;
+  --color-ocean-850: #101c33;
+  --color-ocean-800: #152441;
 }
 
 @layer base {
+  ::selection {
+    background-color: rgba(6, 182, 212, 0.25);
+    color: inherit;
+  }
+
   :root {
     color-scheme: dark;
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    background: #020617;
+    font-family: var(--font-sans);
+    caret-color: #06b6d4;
+    background-color: #070d18;
+    color: #f1f5f9;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    --makko-page-max: 72rem;
+    --makko-gutter: 1.25rem;
+    --makko-surface: #ffffff;
+    --makko-surface-muted: #f8fafc;
+    --makko-surface-raised: #ffffff;
+    --makko-border: rgb(226 232 240 / 0.8);
+    --makko-copy: #0f172a;
+    --makko-muted: #475569;
   }
 
   :root[data-theme='light'] {
     color-scheme: light;
-    background: #f5f7fb;
+    background-color: #f4f7fb;
+    color: #0f172a;
+  }
+
+  :root:not([data-theme='light']) {
+    --makko-surface: #0c1527;
+    --makko-surface-muted: #080f1d;
+    --makko-surface-raised: #101c33;
+    --makko-border: rgb(255 255 255 / 0.1);
+    --makko-copy: #f8fafc;
+    --makko-muted: #94a3b8;
   }
 
   * {
@@ -25,65 +66,398 @@
     min-width: 320px;
     min-height: 100vh;
     margin: 0;
+    background-color: inherit;
+    color: inherit;
+    background-attachment: fixed;
+  }
+
+  /* Keep the canvas calm; color belongs to actions and state, not a wallpaper layer. */
+  :root,
+  :root[data-theme='light'] {
+    background-image: none;
   }
 
   button,
   a,
-  input {
+  input,
+  select,
+  textarea {
     -webkit-tap-highlight-color: transparent;
   }
 
   :focus-visible {
-    outline: 2px solid #a5f3fc;
-    outline-offset: 3px;
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
   }
 }
 
-/* Keep the existing Phase 3/4 component language intact while making its
-   palette semantic through the theme root. */
-:root[data-theme='light'] [class~='bg-slate-950'],
-:root[data-theme='light'] [class*='bg-slate-950/'] {
-  background-color: #f8fafc !important;
+@layer components {
+  .makko-page {
+    width: min(calc(100% - var(--makko-gutter) - var(--makko-gutter)), var(--makko-page-max));
+    margin-inline: auto;
+    padding-block: 2rem 3rem;
+  }
+
+  .makko-page--narrow {
+    width: min(calc(100% - var(--makko-gutter) - var(--makko-gutter)), 32rem);
+  }
+
+  .makko-surface {
+    border: 1px solid var(--makko-border);
+    background: color-mix(in srgb, var(--makko-surface) 92%, transparent);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+  }
+
+  .makko-surface-raised {
+    border: 1px solid color-mix(in srgb, var(--makko-border) 90%, #06b6d4 10%);
+    background: var(--makko-surface-raised);
+    box-shadow: 0 10px 24px rgb(2 6 23 / 0.12);
+  }
+
+  .makko-well {
+    border: 1px solid color-mix(in srgb, var(--makko-border) 88%, transparent);
+    background: var(--makko-surface-muted);
+  }
+
+  .makko-control {
+    min-height: 2.75rem;
+    border-radius: 1rem;
+    transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  }
+
+  .makko-primary {
+    background: #0891b2;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgb(8 145 178 / 0.2);
+  }
+
+  .makko-primary:hover {
+    background: #0e7490;
+    transform: translateY(-1px);
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-primary {
+    background: #22d3ee;
+    color: #020617;
+    box-shadow: 0 4px 14px rgb(6 182 212 / 0.16);
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-primary:hover {
+    background: #a5f3fc;
+  }
+
+  .makko-secondary {
+    border: 1px solid rgb(203 213 225 / 0.9);
+    background: color-mix(in srgb, #ffffff 88%, transparent);
+    color: #334155;
+  }
+
+  .makko-secondary:hover {
+    border-color: rgb(6 182 212 / 0.45);
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-secondary {
+    border-color: rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.05);
+    color: #e2e8f0;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-secondary:hover {
+    border-color: rgb(34 211 238 / 0.4);
+    background: rgb(255 255 255 / 0.08);
+    color: #ffffff;
+  }
+
+  .makko-ghost {
+    color: #475569;
+  }
+
+  .makko-ghost:hover {
+    background: rgb(226 232 240 / 0.6);
+    color: #0f172a;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-ghost {
+    color: #94a3b8;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-ghost:hover {
+    background: rgb(255 255 255 / 0.06);
+    color: #ffffff;
+  }
+
+  .makko-danger {
+    color: #be123c;
+  }
+
+  .makko-danger:hover {
+    background: rgb(255 241 242 / 0.8);
+    color: #9f1239;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-danger {
+    color: #fda4af;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-danger:hover {
+    background: rgb(76 5 25 / 0.3);
+    color: #fecdd3;
+  }
+
+  .makko-focus:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+
+  .makko-field {
+    min-height: 2.75rem;
+    border: 1px solid rgb(203 213 225 / 0.9);
+    border-radius: 1rem;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .makko-field:hover {
+    border-color: rgb(100 116 139 / 0.7);
+  }
+
+  .makko-field:focus {
+    border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgb(6 182 212 / 0.16);
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-field {
+    border-color: rgb(255 255 255 / 0.15);
+    background: #080f1d;
+    color: #f8fafc;
+  }
+
+  :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-field:focus {
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 3px rgb(34 211 238 / 0.16);
+  }
+
+  .makko-readable {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .makko-scroll-x {
+    overflow-x: auto;
+    scrollbar-color: rgb(6 182 212 / 0.45) transparent;
+    scrollbar-width: thin;
+  }
+
+  .makko-scroll-x::-webkit-scrollbar {
+    height: 0.4rem;
+  }
+
+  .makko-scroll-x::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .makko-scroll-x::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgb(6 182 212 / 0.45);
+  }
 }
 
-:root[data-theme='light'] [class~='bg-slate-900'],
-:root[data-theme='light'] [class*='bg-slate-900/'] {
-  background-color: #ffffff !important;
+@media (min-width: 640px) {
+  :root {
+    --makko-gutter: 2rem;
+  }
 }
 
-:root[data-theme='light'] [class~='text-white'] {
-  color: #122033 !important;
+/* Keyframes for Pet Mascot and Ambient Effects */
+@keyframes pet-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
 }
 
-:root[data-theme='light'] [class~='text-slate-100'],
-:root[data-theme='light'] [class~='text-slate-200'],
-:root[data-theme='light'] [class~='text-slate-300'] {
-  color: #26364c !important;
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
 }
 
-:root[data-theme='light'] [class~='text-slate-400'] {
-  color: #52647b !important;
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
-:root[data-theme='light'] [class~='text-slate-500'],
-:root[data-theme='light'] [class~='text-slate-600'] {
-  color: #6b7b90 !important;
+@keyframes fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-:root[data-theme='light'] [class~='text-cyan-100'],
-:root[data-theme='light'] [class~='text-cyan-200'] {
-  color: #0e7490 !important;
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-:root[data-theme='light'] [class*='border-white/'] {
-  border-color: rgb(15 23 42 / 0.13) !important;
+.animate-pet-float {
+  animation: pet-float 4.5s ease-in-out infinite;
 }
 
-:root[data-theme='light'] [class*='bg-white/'] {
-  background-color: rgb(15 23 42 / 0.06) !important;
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
 }
 
-:root[data-theme='light'] body {
-  background: #f5f7fb;
-  color: #122033;
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.8s infinite ease-in-out;
+}
+
+:where([data-theme="dark"], [data-theme="dark"] *, :root:not([data-theme="light"]), :root:not([data-theme="light"]) *) .animate-shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+/* Stagger delay utilities */
+.delay-0 {
+  animation-delay: 0ms;
+}
+
+.delay-75 {
+  animation-delay: 75ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-250 {
+  animation-delay: 250ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  animation-delay: 400ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+.delay-600 {
+  animation-delay: 600ms;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-slide-in-right,
+  .animate-shimmer::after,
+  .animate-pet-float,
+  .animate-pulse-subtle {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Custom Speech Bubble styling */
+.pet-speech-bubble {
+  position: relative;
+}
+
+.pet-speech-bubble::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: -9px;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 10px solid rgba(255, 255, 255, 0.85);
+}
+
+:where([data-theme="dark"], [data-theme="dark"] *, :root:not([data-theme="light"]), :root:not([data-theme="light"]) *) .pet-speech-bubble::before {
+  border-right-color: rgba(16, 28, 51, 0.9);
+}
+
+@media (max-width: 639.98px) {
+  .pet-speech-bubble::before {
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 10px solid rgba(255, 255, 255, 0.85);
+    border-top: none;
+  }
+
+  :where([data-theme="dark"], [data-theme="dark"] *, :root:not([data-theme="light"]), :root:not([data-theme="light"]) *) .pet-speech-bubble::before {
+    border-bottom-color: rgba(16, 28, 51, 0.9);
+  }
 }
