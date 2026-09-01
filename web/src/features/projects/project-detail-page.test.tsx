@@ -21,8 +21,8 @@ const event: ActivityLog = { id: 'event-1', project_id: 'project-1', issue_id: i
 describe('ProjectDetailPage', () => {
   it('closes the create form before opening an issue editor', async () => {
     vi.mocked(useProject).mockReturnValue({ project, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), updateProject: vi.fn(async () => project), deleteProject: vi.fn(async () => false) })
-    vi.mocked(useProjectIssues).mockReturnValue({ issues: [issue], status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), createIssue: vi.fn(async () => issue), updateIssue: vi.fn(async () => issue), deleteIssue: vi.fn(async () => true) })
-    vi.mocked(useProjectActivity).mockReturnValue({ activity: [event], status: 'ready', error: null, refresh: vi.fn(async () => undefined) })
+    vi.mocked(useProjectIssues).mockReturnValue({ issues: [issue], total: 1, page: 1, pageSize: 5, pageCount: 1, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), setPage: vi.fn(), createIssue: vi.fn(async () => issue), updateIssue: vi.fn(async () => issue), deleteIssue: vi.fn(async () => true) })
+    vi.mocked(useProjectActivity).mockReturnValue({ activity: [event], scope: 'last_30_days', page: 1, hasMore: false, isLoadingMore: false, status: 'ready', error: null, refresh: vi.fn(async () => undefined), setScope: vi.fn(), loadMore: vi.fn(async () => undefined) })
     const user = userEvent.setup()
     render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
 
@@ -41,8 +41,8 @@ describe('ProjectDetailPage', () => {
     const updateIssue = vi.fn(async () => ({ ...openIssue, status: 'in_progress' as const }))
     const refresh = vi.fn(async () => undefined)
     vi.mocked(useProject).mockReturnValue({ project, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), updateProject: vi.fn(async () => project), deleteProject: vi.fn(async () => false) })
-    vi.mocked(useProjectIssues).mockReturnValue({ issues: [openIssue], status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), createIssue: vi.fn(async () => openIssue), updateIssue, deleteIssue: vi.fn(async () => true) })
-    vi.mocked(useProjectActivity).mockReturnValue({ activity: [event], status: 'ready', error: null, refresh })
+    vi.mocked(useProjectIssues).mockReturnValue({ issues: [openIssue], total: 1, page: 1, pageSize: 5, pageCount: 1, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), setPage: vi.fn(), createIssue: vi.fn(async () => openIssue), updateIssue, deleteIssue: vi.fn(async () => true) })
+    vi.mocked(useProjectActivity).mockReturnValue({ activity: [event], scope: 'last_30_days', page: 1, hasMore: false, isLoadingMore: false, status: 'ready', error: null, refresh, setScope: vi.fn(), loadMore: vi.fn(async () => undefined) })
 
     const user = userEvent.setup()
     render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
@@ -78,21 +78,26 @@ describe('ProjectDetailPage', () => {
     errorView.unmount()
 
     vi.mocked(useProject).mockReturnValue({ project, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), updateProject: vi.fn(async () => project), deleteProject: vi.fn(async () => false) })
-    vi.mocked(useProjectIssues).mockReturnValue({ issues: [], status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), createIssue: vi.fn(async () => null), updateIssue: vi.fn(async () => null), deleteIssue: vi.fn(async () => false) })
-    vi.mocked(useProjectActivity).mockReturnValue({ activity: [], status: 'ready', error: null, refresh: vi.fn(async () => undefined) })
+    vi.mocked(useProjectIssues).mockReturnValue({ issues: [], total: 0, page: 1, pageSize: 5, pageCount: 0, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), setPage: vi.fn(), createIssue: vi.fn(async () => null), updateIssue: vi.fn(async () => null), deleteIssue: vi.fn(async () => false) })
+    vi.mocked(useProjectActivity).mockReturnValue({ activity: [], scope: 'last_30_days', page: 1, hasMore: false, isLoadingMore: false, status: 'ready', error: null, refresh: vi.fn(async () => undefined), setScope: vi.fn(), loadMore: vi.fn(async () => undefined) })
     render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
     expect(await screen.findByText('No issues yet.')).toBeInTheDocument()
-    expect(screen.getByText('Activity will appear as you work.')).toBeInTheDocument()
+    expect(screen.getByText('No activity in the last 30 days.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Repository commits' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Makko changes' })).not.toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /activity heatmap/i })).not.toBeInTheDocument()
+
+    const user = userEvent.setup()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Priority' }), 'high')
+    expect(screen.getByText('No issues match these filters.')).toBeInTheDocument()
+    expect(screen.getByText('Try widening the filters.')).toBeInTheDocument()
   })
 
   it('keeps a failed issue create visible and reports the mutation error', async () => {
     const createIssue = vi.fn(async () => null)
     vi.mocked(useProject).mockReturnValue({ project, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), updateProject: vi.fn(async () => project), deleteProject: vi.fn(async () => false) })
-    vi.mocked(useProjectIssues).mockReturnValue({ issues: [], status: 'ready', error: 'Issue could not be created.', isMutating: false, refresh: vi.fn(async () => undefined), createIssue, updateIssue: vi.fn(async () => null), deleteIssue: vi.fn(async () => false) })
-    vi.mocked(useProjectActivity).mockReturnValue({ activity: [], status: 'ready', error: null, refresh: vi.fn(async () => undefined) })
+    vi.mocked(useProjectIssues).mockReturnValue({ issues: [], total: 0, page: 1, pageSize: 5, pageCount: 0, status: 'ready', error: 'Issue could not be created.', isMutating: false, refresh: vi.fn(async () => undefined), setPage: vi.fn(), createIssue, updateIssue: vi.fn(async () => null), deleteIssue: vi.fn(async () => false) })
+    vi.mocked(useProjectActivity).mockReturnValue({ activity: [], scope: 'last_30_days', page: 1, hasMore: false, isLoadingMore: false, status: 'ready', error: null, refresh: vi.fn(async () => undefined), setScope: vi.fn(), loadMore: vi.fn(async () => undefined) })
     const user = userEvent.setup()
     render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
 
@@ -103,5 +108,26 @@ describe('ProjectDetailPage', () => {
     expect(createIssue).toHaveBeenCalledWith({ title: 'Broken issue', description: '', type: 'task', priority: 'medium', status: 'todo' })
     expect(screen.getByRole('heading', { name: 'Create an issue' })).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('Issue could not be created.')
+  })
+
+  it('exposes activity scope and server issue pagination controls', async () => {
+    const setScope = vi.fn()
+    const loadMore = vi.fn(async () => undefined)
+    const setPage = vi.fn()
+    vi.mocked(useProject).mockReturnValue({ project, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), updateProject: vi.fn(async () => project), deleteProject: vi.fn(async () => false) })
+    vi.mocked(useProjectIssues).mockReturnValue({ issues: [issue], total: 11, page: 1, pageSize: 5, pageCount: 3, status: 'ready', error: null, isMutating: false, refresh: vi.fn(async () => undefined), setPage, createIssue: vi.fn(async () => issue), updateIssue: vi.fn(async () => issue), deleteIssue: vi.fn(async () => true) })
+    vi.mocked(useProjectActivity).mockReturnValue({ activity: [event], scope: 'last_30_days', page: 1, hasMore: true, isLoadingMore: false, status: 'ready', error: null, refresh: vi.fn(async () => undefined), setScope, loadMore })
+
+    const user = userEvent.setup()
+    render(<MemoryRouter initialEntries={['/app/projects/project-1']}><Routes><Route path="/app/projects/:projectId" element={<ProjectDetailPage />} /></Routes></MemoryRouter>)
+
+    expect(screen.getByText('Showing 1–5 of 11')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 of 3')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    expect(setPage).toHaveBeenCalledWith(2)
+    await user.click(screen.getByRole('button', { name: 'All time' }))
+    expect(setScope).toHaveBeenCalledWith('all_time')
+    await user.click(screen.getByRole('button', { name: 'Load more activity' }))
+    expect(loadMore).toHaveBeenCalled()
   })
 })

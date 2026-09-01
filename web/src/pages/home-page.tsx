@@ -262,7 +262,7 @@ function FinalCallToAction() {
 function LandingPreview() {
   return (
     <aside aria-label="Illustrative Makko command center preview" className="makko-surface-raised min-w-0 rounded-3xl p-4 sm:p-6">
-      <div className="flex min-w-0 items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="relative size-14 shrink-0 rounded-2xl border border-cyan-500/25 bg-cyan-500/10 p-1.5 dark:border-cyan-400/25 dark:bg-cyan-400/10">
             <img src="/makko-pet.png" alt="Makko the shark pet" width={56} height={56} className="size-full object-contain" />

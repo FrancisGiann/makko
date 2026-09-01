@@ -7,8 +7,9 @@ import { StatusMessage } from '../../components/status-message'
 import { useProject } from '../../hooks/use-project'
 import { useProjectActivity } from '../../hooks/use-project-activity'
 import { useProjectIssues } from '../../hooks/use-project-issues'
+import type { ActivityScope } from '../../services/activity.service'
 import type { ActivityLog, Issue } from '../../types/domain'
-import { DEFAULT_ISSUE_FILTERS, filterAndSortIssues, type IssueFilters, type IssueSort } from '../../utils/issue-filters'
+import { DEFAULT_ISSUE_FILTERS, type IssueFilters, type IssueSort } from '../../utils/issue-filters'
 import { IssueForm } from '../issues/issue-form'
 import { ProjectGithubSection } from '../github/project-github-section'
 import { ProjectForm } from './project-form'
@@ -40,12 +41,12 @@ export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
   const projectState = useProject(projectId)
-  const issueState = useProjectIssues(projectId)
-  const activityState = useProjectActivity(projectId)
   const [showProjectEdit, setShowProjectEdit] = useState(false)
   const [showIssueForm, setShowIssueForm] = useState(false)
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null)
   const [filters, setFilters] = useState<IssueFilters>(DEFAULT_ISSUE_FILTERS)
+  const issueState = useProjectIssues(projectId, filters)
+  const activityState = useProjectActivity(projectId)
 
   if (!projectId) return <MissingProject />
 
@@ -69,7 +70,13 @@ export function ProjectDetailPage() {
 
   if (!projectState.project) return <MissingProject />
   const project = projectState.project
-  const visibleIssues = filterAndSortIssues(issueState.issues, filters)
+  const issueTotal = issueState.total ?? issueState.issues.length
+  const issuePageSize = issueState.pageSize ?? 5
+  const issuePageCount = issueState.pageCount ?? Math.ceil(issueTotal / issuePageSize)
+  const issuePage = issueState.page ?? 1
+  const hasActiveIssueFilters = filters.status !== 'all' || filters.type !== 'all' || filters.priority !== 'all'
+  const issueStart = issueTotal > 0 ? (issuePage - 1) * issuePageSize + 1 : 0
+  const issueEnd = issueTotal > 0 ? Math.min(issueTotal, issuePage * issuePageSize) : 0
 
   const handleDeleteProject = async () => {
     if (!window.confirm(`Delete “${project.name}” and all of its issues? This cannot be undone.`)) return
@@ -217,15 +224,15 @@ export function ProjectDetailPage() {
             <div className="mt-7"><StatusMessage kind="error">Unable to load issues.</StatusMessage></div>
           )}
 
-          {issueState.status === 'ready' && visibleIssues.length === 0 && (
+          {issueState.status === 'ready' && issueState.issues.length === 0 && (
             <div className="mt-7 rounded-3xl border border-dashed border-slate-200 p-8 text-center dark:border-white/10">
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{issueState.issues.length ? 'No issues match these filters.' : 'No issues yet.'}</p>
-              <p className="mt-1 text-sm font-normal text-slate-500 dark:text-slate-400">{issueState.issues.length ? 'Try widening the filters.' : 'Capture the next piece of work when it arrives.'}</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{hasActiveIssueFilters ? 'No issues match these filters.' : 'No issues yet.'}</p>
+              <p className="mt-1 text-sm font-normal text-slate-500 dark:text-slate-400">{hasActiveIssueFilters ? 'Try widening the filters.' : 'Capture the next piece of work when it arrives.'}</p>
             </div>
           )}
 
-          {visibleIssues.length > 0 && <div className="mt-6 divide-y divide-slate-200/70 dark:divide-white/[0.06]">
-            {visibleIssues.map((issue, index) => {
+          {issueState.issues.length > 0 && <div className="mt-6 divide-y divide-slate-200/70 dark:divide-white/[0.06]">
+            {issueState.issues.map((issue, index) => {
               const delays = ['delay-0', 'delay-75', 'delay-100', 'delay-150', 'delay-200', 'delay-250', 'delay-300']
               const delayClass = delays[index % delays.length]
               return (
@@ -263,6 +270,33 @@ export function ProjectDetailPage() {
               )
             })}
           </div>}
+
+          {issueTotal > 0 && (
+            <div className="mt-5 flex flex-col gap-3 border-t border-slate-100/80 pt-4 text-sm text-slate-600 dark:border-white/[0.06] dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <p aria-live="polite">Showing {issueStart}–{issueEnd} of {issueTotal}</p>
+              {issuePageCount > 1 && (
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => issueState.setPage(issuePage - 1)}
+                    disabled={issuePage <= 1 || issueState.status === 'loading'}
+                    className="makko-control makko-secondary makko-focus px-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="min-w-20 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">Page {issuePage} of {issuePageCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => issueState.setPage(issuePage + 1)}
+                    disabled={issuePage >= issuePageCount || issueState.status === 'loading'}
+                    className="makko-control makko-secondary makko-focus px-3 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <ProjectActivitySection
@@ -282,30 +316,69 @@ export function ProjectDetailPage() {
 type ActivityState = ReturnType<typeof useProjectActivity>
 
 function ProjectActivitySection({ activityState }: { activityState: ActivityState }) {
+  const activityScope = activityState.scope ?? 'last_30_days'
   return (
-    <section className="makko-surface animate-fade-up delay-200 rounded-3xl p-6 sm:p-8" aria-labelledby="activity-heading">
+    <section className="makko-surface animate-fade-up delay-200 min-w-0 rounded-3xl p-6 sm:p-8" aria-labelledby="activity-heading">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <h2 id="activity-heading" className="text-2xl font-semibold text-slate-900 dark:text-white">Activity</h2>
           <p className="mt-1 text-sm font-normal leading-6 text-slate-600 dark:text-slate-400">A read-only record of changes in this project.</p>
         </div>
       </div>
+      <fieldset className="mt-5 min-w-0">
+        <legend className="text-xs font-semibold text-slate-700 dark:text-slate-300">Timeline range</legend>
+        <div className="makko-well mt-2 inline-flex max-w-full rounded-2xl p-1" role="group" aria-label="Timeline range">
+          {([
+            ['last_30_days', 'Last 30 days'],
+            ['all_time', 'All time'],
+          ] as const).map(([value, label]) => {
+            const isActive = activityScope === value
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => activityState.setScope(value as ActivityScope)}
+                className={`makko-control makko-focus min-h-10 whitespace-nowrap px-3 text-xs font-semibold sm:px-4 ${isActive ? 'bg-white text-cyan-800 shadow-xs ring-1 ring-black/5 dark:bg-white/10 dark:text-cyan-200 dark:ring-white/10' : 'makko-ghost'}`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
       {activityState.error && <div className="mt-6"><StatusMessage kind="error">{activityState.error}</StatusMessage></div>}
       {activityState.status === 'loading' && activityState.activity.length === 0 && <p className="mt-7 text-sm font-medium text-slate-600 dark:text-slate-400" role="status">Loading activity…</p>}
       {activityState.status === 'ready' && activityState.activity.length === 0 && (
-        <p className="mt-7 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm font-normal text-slate-500 dark:border-white/10 dark:text-slate-400">Activity will appear as you work.</p>
+        <p className="mt-7 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm font-normal text-slate-500 dark:border-white/10 dark:text-slate-400">
+          {activityScope === 'last_30_days' ? 'No activity in the last 30 days.' : 'Activity will appear as you work.'}
+        </p>
       )}
-      <ol className="mt-7 space-y-5">
-        {activityState.activity.map((event) => (
-          <li key={event.id} className="relative border-l border-cyan-500/30 pl-5 dark:border-cyan-400/20">
-            <span className="absolute -left-[11px] top-0.5 grid size-5 place-items-center rounded-full border border-cyan-500/25 bg-white text-cyan-700 dark:border-cyan-400/25 dark:bg-[#0c1527] dark:text-cyan-300" aria-hidden="true">
-              <ActivityIcon action={event.action} />
-            </span>
-            <p className="makko-readable text-sm font-normal leading-6 text-slate-800 dark:text-slate-200">{event.description}</p>
-            <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400"><span className="capitalize font-semibold">{actionLabel(event.action)}</span> · {formatDate(event.created_at)}</p>
-          </li>
-        ))}
-      </ol>
+      {activityState.activity.length > 0 && (
+        <div className="mt-7 min-w-0 max-h-[28rem] overflow-x-hidden overflow-y-auto rounded-2xl border border-slate-100/80 p-4 dark:border-white/[0.06] sm:p-5">
+          <ol className="min-w-0 space-y-5">
+            {activityState.activity.map((event) => (
+              <li key={event.id} className="relative min-w-0 border-l border-cyan-500/30 pl-5 dark:border-cyan-400/20">
+                <span className="absolute -left-[11px] top-0.5 grid size-5 place-items-center rounded-full border border-cyan-500/25 bg-white text-cyan-700 dark:border-cyan-400/25 dark:bg-[#0c1527] dark:text-cyan-300" aria-hidden="true">
+                  <ActivityIcon action={event.action} />
+                </span>
+                <p className="makko-readable min-w-0 break-words text-sm font-normal leading-6 text-slate-800 dark:text-slate-200">{event.description}</p>
+                <p className="mt-1 min-w-0 break-words text-xs font-medium text-slate-500 dark:text-slate-400"><span className="capitalize font-semibold">{actionLabel(event.action)}</span> · {formatDate(event.created_at)}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {activityState.hasMore && (
+        <button
+          type="button"
+          onClick={() => void activityState.loadMore()}
+          disabled={activityState.isLoadingMore}
+          className="makko-control makko-secondary makko-focus mt-5 w-full px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {activityState.isLoadingMore ? 'Loading more activity…' : 'Load more activity'}
+        </button>
+      )}
     </section>
   )
 }
