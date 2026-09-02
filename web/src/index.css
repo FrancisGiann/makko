@@ -27,9 +27,9 @@
   :root {
     color-scheme: dark;
     font-family: var(--font-sans);
-    caret-color: #06b6d4;
-    background-color: #070d18;
-    color: #f1f5f9;
+    caret-color: #22d3ee;
+    background-color: #0d131f;
+    color: #dde2f3;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -50,12 +50,12 @@
   }
 
   :root:not([data-theme='light']) {
-    --makko-surface: #0c1527;
-    --makko-surface-muted: #080f1d;
-    --makko-surface-raised: #101c33;
-    --makko-border: rgb(255 255 255 / 0.1);
-    --makko-copy: #f8fafc;
-    --makko-muted: #94a3b8;
+    --makko-surface: #1a202b;
+    --makko-surface-muted: #080e19;
+    --makko-surface-raised: #242a36;
+    --makko-border: #3c494c;
+    --makko-copy: #dde2f3;
+    --makko-muted: #bbc9cd;
   }
 
   * {
@@ -143,7 +143,7 @@
   }
 
   :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-primary:hover {
-    background: #a5f3fc;
+    background: #8aebff;
   }
 
   .makko-secondary {
@@ -159,9 +159,9 @@
   }
 
   :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-secondary {
-    border-color: rgb(255 255 255 / 0.12);
-    background: rgb(255 255 255 / 0.05);
-    color: #e2e8f0;
+    border-color: #3c494c;
+    background: transparent;
+    color: #dde2f3;
   }
 
   :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-secondary:hover {
@@ -232,9 +232,9 @@
   }
 
   :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-field {
-    border-color: rgb(255 255 255 / 0.15);
-    background: #080f1d;
-    color: #f8fafc;
+    border-color: #3c494c;
+    background: #080e19;
+    color: #dde2f3;
   }
 
   :where([data-theme='dark'], [data-theme='dark'] *, :root:not([data-theme='light']), :root:not([data-theme='light']) *) .makko-field:focus {
