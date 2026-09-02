@@ -5,13 +5,19 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '../auth/auth-context'
 import { createFakeAuthService, createSession } from '../../test/test-auth'
-import type { Project } from '../../types/domain'
+import type { Issue, Project } from '../../types/domain'
+import type { IssueService } from '../../services/issue.service'
 import type { ProjectService } from '../../services/project.service'
 import { ProjectsPage } from './projects-page'
 
 const initialProject: Project = {
   id: 'project-1', owner_id: createSession().user.id, name: 'Launch notes', description: 'Keep the launch context here.', tags: ['personal'],
   created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+}
+
+const initialIssue: Issue = {
+  id: 'issue-1', project_id: 'project-1', title: 'Check the launch path', description: 'Make the happy path clear.', type: 'task', priority: 'high', status: 'in_progress',
+  created_at: '2026-01-02T00:00:00Z', updated_at: '2026-01-02T00:00:00Z',
 }
 
 function createService() {
@@ -34,11 +40,61 @@ function createService() {
   return service
 }
 
-function renderPage(service: ProjectService) {
-  return render(<AuthProvider service={createFakeAuthService(createSession())}><MemoryRouter><ProjectsPage service={service} /></MemoryRouter></AuthProvider>)
+function createIssueService(): IssueService {
+  return {
+    listIssues: vi.fn(async (projectId) => {
+      const items = projectId === initialIssue.project_id ? [initialIssue] : []
+      return { items, total: items.length, page: 1, pageSize: 5, pageCount: items.length > 0 ? 1 : 0 }
+    }),
+    createIssue: vi.fn(async () => initialIssue),
+    updateIssue: vi.fn(async () => initialIssue),
+    deleteIssue: vi.fn(async () => undefined),
+  }
+}
+
+function renderPage(service: ProjectService, issueService = createIssueService()) {
+  return render(<AuthProvider service={createFakeAuthService(createSession())}><MemoryRouter><ProjectsPage service={service} issueService={issueService} /></MemoryRouter></AuthProvider>)
 }
 
 describe('ProjectsPage', () => {
+  it('shows an injected issue preview without opening the project', async () => {
+    const issueService = createIssueService()
+    renderPage(createService(), issueService)
+
+    expect(await screen.findByText('Check the launch path')).toBeInTheDocument()
+    expect(screen.getByText('Issue queue')).toBeInTheDocument()
+    expect(screen.getByText('In progress')).toBeInTheDocument()
+    expect(screen.getByText('High priority')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /View all issues/i })).toHaveAttribute('href', '/app/projects/project-1')
+    expect(issueService.listIssues).toHaveBeenCalledWith('project-1', expect.objectContaining({ page: 1 }))
+  })
+
+  it('shows an empty issue preview state', async () => {
+    const issueService = createIssueService()
+    issueService.listIssues = vi.fn(async () => ({ items: [], total: 0, page: 1, pageSize: 5, pageCount: 0 }))
+    renderPage(createService(), issueService)
+
+    expect(await screen.findByText('No issues yet.')).toBeInTheDocument()
+    expect(screen.getByText('0 issues')).toBeInTheDocument()
+  })
+
+  it('retries an issue preview after a read error', async () => {
+    const user = userEvent.setup()
+    const issueService = createIssueService()
+    let attempts = 0
+    issueService.listIssues = vi.fn(async () => {
+      attempts += 1
+      if (attempts === 1) throw new Error('Issues unavailable')
+      return { items: [initialIssue], total: 1, page: 1, pageSize: 5, pageCount: 1 }
+    })
+    renderPage(createService(), issueService)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Issues unavailable')
+    await user.click(screen.getByRole('button', { name: 'Retry issues' }))
+    expect(await screen.findByText('Check the launch path')).toBeInTheDocument()
+    expect(issueService.listIssues).toHaveBeenCalledTimes(2)
+  })
+
   it('lists and creates a project through the service boundary', async () => {
     const user = userEvent.setup()
     const service = createService()
