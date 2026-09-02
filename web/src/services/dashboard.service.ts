@@ -13,6 +13,17 @@ export interface DashboardProjectSummary {
   completed: number
 }
 
+export interface DashboardIssueSummary {
+  id: string
+  title: string
+  project_id: string
+  projectName: string | null
+  type: IssueType
+  priority: IssuePriority
+  status: IssueStatus
+  updated_at: string
+}
+
 export interface DashboardStats {
   projectCount: number
   totalIssues: number
@@ -22,6 +33,7 @@ export interface DashboardStats {
   byType: Record<IssueType, number>
   byPriority: Record<IssuePriority, number>
   projects: DashboardProjectSummary[]
+  issues: DashboardIssueSummary[]
 }
 
 export interface DashboardProject {
@@ -38,11 +50,12 @@ const EMPTY_STATS: DashboardStats = {
   byType: { task: 0, bug: 0 },
   byPriority: { low: 0, medium: 0, high: 0 },
   projects: [],
+  issues: [],
 }
 
 export function calculateDashboardStats(
   projects: readonly DashboardProject[],
-  issues: readonly Pick<Issue, 'project_id' | 'type' | 'priority' | 'status'>[],
+  issues: readonly Pick<Issue, 'id' | 'title' | 'project_id' | 'type' | 'priority' | 'status' | 'updated_at'>[],
 ): DashboardStats {
   const projectSummaries = new Map<string, DashboardProjectSummary>(
     projects.map((project) => [project.id, { id: project.id, name: project.name, total: 0, open: 0, completed: 0 }]),
@@ -53,6 +66,7 @@ export function calculateDashboardStats(
     byType: { ...EMPTY_STATS.byType },
     byPriority: { ...EMPTY_STATS.byPriority },
     projects: [],
+    issues: [],
   }
 
   for (const issue of issues) {
@@ -70,6 +84,17 @@ export function calculateDashboardStats(
       if (issue.status === 'done') summary.completed += 1
       else summary.open += 1
     }
+
+    stats.issues.push({
+      id: issue.id,
+      title: issue.title,
+      project_id: issue.project_id,
+      projectName: summary?.name ?? null,
+      type: issue.type,
+      priority: issue.priority,
+      status: issue.status,
+      updated_at: issue.updated_at,
+    })
   }
 
   stats.projectCount = projects.length
@@ -77,6 +102,15 @@ export function calculateDashboardStats(
     if (second.open !== first.open) return second.open - first.open
     const nameComparison = first.name.localeCompare(second.name, undefined, { sensitivity: 'base' })
     return nameComparison !== 0 ? nameComparison : first.id.localeCompare(second.id)
+  })
+  stats.issues.sort((first, second) => {
+    const firstDate = Date.parse(first.updated_at)
+    const secondDate = Date.parse(second.updated_at)
+    const firstTimestamp = Number.isFinite(firstDate) ? firstDate : 0
+    const secondTimestamp = Number.isFinite(secondDate) ? secondDate : 0
+    if (secondTimestamp !== firstTimestamp) return secondTimestamp - firstTimestamp
+    const titleComparison = first.title.localeCompare(second.title, undefined, { sensitivity: 'base' })
+    return titleComparison !== 0 ? titleComparison : first.id.localeCompare(second.id)
   })
   return stats
 }
@@ -97,14 +131,14 @@ export function createDashboardService(client: SupabaseClient<Database>): Dashbo
         client.from('projects').select('id,name').eq('owner_id', owner),
         // RLS scopes this read to internal issues belonging to the current user.
         // Deliberately do not query github_issues: GitHub data is external and read-only.
-        client.from('issues').select('project_id,type,priority,status'),
+        client.from('issues').select('id,title,project_id,type,priority,status,updated_at'),
       ])
       if (projectsResult.error) throw toError(projectsResult.error, 'Unable to load dashboard projects.')
       if (issuesResult.error) throw toError(issuesResult.error, 'Unable to load dashboard issues.')
 
       return calculateDashboardStats(
         (projectsResult.data ?? []) as DashboardProject[],
-        (issuesResult.data ?? []) as Pick<Issue, 'project_id' | 'type' | 'priority' | 'status'>[],
+        (issuesResult.data ?? []) as Pick<Issue, 'id' | 'title' | 'project_id' | 'type' | 'priority' | 'status' | 'updated_at'>[],
       )
     },
   }

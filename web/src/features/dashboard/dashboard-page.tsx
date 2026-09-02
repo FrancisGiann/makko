@@ -1,18 +1,31 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Activity, ArrowRight, FolderOpen, RotateCw } from 'lucide-react'
+import { Activity, ArrowRight, Check, ChevronRight, CircleDot, ExternalLink, FolderOpen, GitBranch, RotateCw, X } from 'lucide-react'
 import { GitHubCalendar } from 'react-github-calendar'
 
 import { StatusMessage } from '../../components/status-message'
 import { useAuth } from '../auth/use-auth'
 import { useDashboard } from '../../hooks/use-dashboard'
-import type { DashboardService, DashboardStats } from '../../services/dashboard.service'
-import type { IssueStatus } from '../../types/domain'
+import type { DashboardIssueSummary, DashboardService, DashboardStats } from '../../services/dashboard.service'
+import type { IssuePriority, IssueStatus, IssueType } from '../../types/domain'
 import { getDisplayName } from '../../utils/display-name'
 import { clearLegacyGithubUsername, GITHUB_USERNAME_PATTERN, githubUsernameStorageKey, loadGithubUsername, normalizeGithubUsername } from '../../utils/github-username'
 
 function statusLabel(status: IssueStatus): string {
   return status === 'in_progress' ? 'In progress' : status === 'todo' ? 'To do' : 'Done'
+}
+
+type BreakdownDimension = 'status' | 'type' | 'priority'
+
+interface BreakdownSelection {
+  dimension: BreakdownDimension
+  value: string
+}
+
+function breakdownLabel(dimension: BreakdownDimension, value: string): string {
+  if (dimension === 'status') return statusLabel(value as IssueStatus)
+  if (dimension === 'type') return value === 'bug' ? 'Bugs' : 'Tasks'
+  return `${value[0].toUpperCase()}${value.slice(1)} priority`
 }
 
 function getTimeGreeting(): string {
@@ -76,7 +89,16 @@ export function DashboardPage({ service }: DashboardPageProps) {
   const [githubUsername, setGithubUsername] = useState('')
   const [appliedUsername, setAppliedUsername] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [breakdownSelection, setBreakdownSelection] = useState<BreakdownSelection | null>(null)
   const isLoading = status === 'loading' && !stats
+
+  const handleBreakdownSelect = (dimension: BreakdownDimension, value: string) => {
+    setBreakdownSelection((current) => (
+      current?.dimension === dimension && current.value === value
+        ? null
+        : { dimension, value }
+    ))
+  }
 
   useEffect(() => {
     if (stats) {
@@ -165,8 +187,12 @@ export function DashboardPage({ service }: DashboardPageProps) {
           <div className="animate-fade-up delay-300 mt-6 grid gap-6 md:grid-cols-2 lg:gap-8">
             <BreakdownCard
               title="By status"
+              dimension="status"
               animate={animateBars}
+              selected={breakdownSelection}
+              onSelect={handleBreakdownSelect}
               items={(['todo', 'in_progress', 'done'] as const).map((key) => ({
+                key,
                 label: statusLabel(key),
                 value: stats.byStatus[key],
                 color: key === 'done' ? 'bg-emerald-500' : key === 'in_progress' ? 'bg-cyan-500' : 'bg-slate-400 dark:bg-slate-500',
@@ -174,8 +200,12 @@ export function DashboardPage({ service }: DashboardPageProps) {
             />
             <BreakdownCard
               title="By type"
+              dimension="type"
               animate={animateBars}
+              selected={breakdownSelection}
+              onSelect={handleBreakdownSelect}
               items={(['task', 'bug'] as const).map((key) => ({
+                key,
                 label: key === 'bug' ? 'Bugs' : 'Tasks',
                 value: stats.byType[key],
                 color: key === 'bug' ? 'bg-rose-500' : 'bg-cyan-500',
@@ -183,8 +213,12 @@ export function DashboardPage({ service }: DashboardPageProps) {
             />
             <BreakdownCard
               title="By priority"
+              dimension="priority"
               animate={animateBars}
+              selected={breakdownSelection}
+              onSelect={handleBreakdownSelect}
               items={(['high', 'medium', 'low'] as const).map((key) => ({
+                key,
                 label: `${key[0].toUpperCase()}${key.slice(1)}`,
                 value: stats.byPriority[key],
                 color: key === 'high' ? 'bg-rose-500' : key === 'medium' ? 'bg-amber-500' : 'bg-slate-400 dark:bg-slate-500',
@@ -212,6 +246,14 @@ export function DashboardPage({ service }: DashboardPageProps) {
               )}
             </section>
           </div>
+
+          {breakdownSelection && (
+            <DashboardDrilldown
+              stats={stats}
+              selection={breakdownSelection}
+              onClose={() => setBreakdownSelection(null)}
+            />
+          )}
 
           {stats.projectCount === 0 && (
             <section className="animate-fade-up delay-300 mt-6 rounded-3xl border border-dashed border-cyan-500/30 bg-cyan-500/[0.04] p-6 text-center dark:border-cyan-400/20 dark:bg-cyan-400/[0.04] sm:p-12" aria-label="Empty dashboard">
@@ -303,11 +345,27 @@ function GithubContributionsSection({
 
   const handleStartEdit = () => {
     setGithubUsername(appliedUsername)
+    setValidationError(null)
     setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
     setGithubUsername(appliedUsername)
+    setValidationError(null)
+    setIsEditing(false)
+  }
+
+  const handleRemove = () => {
+    try {
+      clearLegacyGithubUsername()
+      const storageKey = githubUsernameStorageKey(userId)
+      if (storageKey) localStorage.removeItem(storageKey)
+    } catch {
+      // ignore storage errors
+    }
+    setValidationError(null)
+    setGithubUsername('')
+    setAppliedUsername('')
     setIsEditing(false)
   }
 
@@ -319,6 +377,7 @@ function GithubContributionsSection({
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2.5">
+            <GitBranch className="size-5 shrink-0 text-slate-700 dark:text-slate-300" aria-hidden="true" />
             <h2 id="github-contributions-heading" className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
               GitHub Contributions
             </h2>
@@ -330,7 +389,7 @@ function GithubContributionsSection({
           </div>
           <p className="mt-1 text-sm font-normal text-slate-600 dark:text-slate-400">
             {appliedUsername && !isEditing
-              ? 'Live contribution graph synced directly from your public GitHub profile.'
+              ? 'Public contribution graph for the configured GitHub username.'
               : 'Enter your GitHub username to view your live contribution graph.'}
           </p>
         </div>
@@ -344,6 +403,45 @@ function GithubContributionsSection({
             >
               Edit
             </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              aria-label="Remove GitHub username"
+              className="makko-control makko-focus makko-ghost px-3.5 text-sm font-semibold"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="makko-well mt-5 rounded-2xl border-cyan-500/20 bg-cyan-500/[0.04] p-4 dark:border-cyan-400/15 dark:bg-cyan-400/[0.04] sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <GitBranch className="mt-0.5 size-4 shrink-0 text-cyan-700 dark:text-cyan-300" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Public GitHub profile activity</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">
+                This contribution graph is rendered from the configured public username. It is separate from Makko data and never affects internal dashboard stats.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex w-fit shrink-0 items-center rounded-full border border-slate-300/80 bg-white/70 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:border-white/15 dark:bg-white/[0.06] dark:text-slate-300">
+            External · read-only
+          </span>
+        </div>
+        {appliedUsername && !isEditing && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-200/70 pt-3 text-xs dark:border-white/[0.08]">
+            <a
+              href={`https://github.com/${encodeURIComponent(appliedUsername)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="makko-focus inline-flex min-h-9 items-center gap-1.5 font-semibold text-cyan-700 underline decoration-cyan-500/40 underline-offset-4 transition hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100"
+            >
+              View @{appliedUsername} on GitHub
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+            </a>
+            <span className="text-slate-500 dark:text-slate-400">Source: public profile contributions</span>
           </div>
         )}
       </div>
@@ -589,12 +687,18 @@ function MakkoPetWidget({ stats, isLoading, userName }: MakkoPetWidgetProps) {
 
 function BreakdownCard({
   title,
+  dimension,
   items,
   animate = true,
+  selected,
+  onSelect,
 }: {
   title: string
-  items: { label: string; value: number; color?: string }[]
+  dimension: BreakdownDimension
+  items: { key: string; label: string; value: number; color?: string }[]
   animate?: boolean
+  selected: BreakdownSelection | null
+  onSelect: (dimension: BreakdownDimension, value: string) => void
 }) {
   const total = items.reduce((sum, item) => sum + item.value, 0)
   return (
@@ -603,23 +707,150 @@ function BreakdownCard({
       <ul className="mt-5 space-y-4">
         {items.map((item) => {
           const targetWidth = total ? (item.value / total) * 100 : 0
+          const isSelected = selected?.dimension === dimension && selected.value === item.key
+          const issueCountLabel = `${item.value} internal issue${item.value === 1 ? '' : 's'}`
           return (
             <li key={item.label}>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-slate-700 dark:text-slate-300">{item.label}</span>
-                <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{item.value}</span>
-              </div>
-              <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-900" aria-hidden="true">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ease-out ${item.color ?? 'bg-cyan-500'}`}
-                  style={{ width: animate ? `${targetWidth}%` : '0%' }}
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => onSelect(dimension, item.key)}
+                disabled={item.value === 0}
+                aria-pressed={isSelected}
+                aria-label={`${item.label}, ${issueCountLabel}${item.value === 0 ? '' : ', show issue details'}`}
+                className={`makko-focus group w-full rounded-2xl px-2.5 py-2 text-left transition-colors ${
+                  item.value === 0
+                    ? 'cursor-not-allowed opacity-60'
+                    : isSelected
+                      ? 'bg-cyan-500/[0.08] ring-2 ring-cyan-500/35 dark:bg-cyan-400/[0.1] dark:ring-cyan-300/35'
+                      : 'hover:bg-slate-100/80 dark:hover:bg-white/[0.05]'
+                }`}
+              >
+                <span className="flex min-h-7 items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{item.label}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-semibold tabular-nums text-slate-900 dark:text-white">{item.value}</span>
+                    {item.value > 0 && <ChevronRight className="size-4 text-slate-400 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 dark:text-slate-500" aria-hidden="true" />}
+                  </span>
+                </span>
+                <span className="mt-2 block h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-900" aria-hidden="true">
+                  <span
+                    className={`block h-full rounded-full transition-all duration-1000 ease-out ${item.color ?? 'bg-cyan-500'}`}
+                    style={{ width: animate ? `${targetWidth}%` : '0%' }}
+                  />
+                </span>
+              </button>
             </li>
           )
         })}
       </ul>
       {total === 0 && <p className="mt-4 text-sm font-normal text-slate-500 dark:text-slate-400">No internal issues yet.</p>}
+    </section>
+  )
+}
+
+function matchesBreakdownSelection(issue: DashboardIssueSummary, selection: BreakdownSelection): boolean {
+  if (selection.dimension === 'status') return issue.status === selection.value
+  if (selection.dimension === 'type') return issue.type === selection.value
+  return issue.priority === selection.value
+}
+
+function issueTypeLabel(type: IssueType): string {
+  return type === 'bug' ? 'Bug' : 'Task'
+}
+
+function issuePriorityLabel(priority: IssuePriority): string {
+  return `${priority[0].toUpperCase()}${priority.slice(1)} priority`
+}
+
+function issueStatusClass(status: IssueStatus): string {
+  if (status === 'done') return 'border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-200'
+  if (status === 'in_progress') return 'border-cyan-500/25 bg-cyan-500/10 text-cyan-800 dark:border-cyan-400/25 dark:bg-cyan-400/10 dark:text-cyan-200'
+  return 'border-slate-200/80 bg-slate-100/80 text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300'
+}
+
+function issueTypeClass(type: IssueType): string {
+  return type === 'bug' ? 'border-rose-500/25 bg-rose-500/10 text-rose-800 dark:border-rose-400/25 dark:bg-rose-400/10 dark:text-rose-200' : 'border-cyan-500/25 bg-cyan-500/10 text-cyan-800 dark:border-cyan-400/25 dark:bg-cyan-400/10 dark:text-cyan-200'
+}
+
+function issuePriorityClass(priority: IssuePriority): string {
+  if (priority === 'high') return 'border-rose-500/25 bg-rose-500/10 text-rose-800 dark:border-rose-400/25 dark:bg-rose-400/10 dark:text-rose-200'
+  if (priority === 'medium') return 'border-amber-500/25 bg-amber-500/10 text-amber-800 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-200'
+  return 'border-slate-200/80 bg-slate-100/80 text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300'
+}
+
+function DashboardDrilldown({
+  stats,
+  selection,
+  onClose,
+}: {
+  stats: DashboardStats
+  selection: BreakdownSelection
+  onClose: () => void
+}) {
+  const matchingIssues = (stats.issues ?? []).filter((issue) => matchesBreakdownSelection(issue, selection))
+  const selectionLabel = breakdownLabel(selection.dimension, selection.value)
+
+  return (
+    <section className="makko-surface animate-fade-up mt-6 rounded-3xl p-5 sm:p-7 lg:p-8" aria-labelledby="dashboard-drilldown-heading" aria-live="polite">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 id="dashboard-drilldown-heading" className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">{selectionLabel}</h2>
+            <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-800 dark:bg-cyan-400/10 dark:text-cyan-200">
+              {matchingIssues.length} matching issue{matchingIssues.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <p className="mt-1 text-sm font-normal text-slate-600 dark:text-slate-400">Internal Makko issues from your projects</p>
+          <p className="mt-1 text-xs font-normal text-slate-500 dark:text-slate-400">GitHub activity is external and never included in these details.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="makko-control makko-secondary makko-focus inline-flex w-fit shrink-0 items-center gap-1.5 px-3.5 text-sm font-semibold"
+        >
+          <X className="size-4" aria-hidden="true" />
+          Close
+        </button>
+      </div>
+
+      {matchingIssues.length === 0 ? (
+        <p className="mt-6 rounded-2xl border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">No internal issues match this breakdown.</p>
+      ) : (
+        <ul className="mt-6 max-h-[28rem] divide-y divide-slate-200/70 overflow-y-auto rounded-2xl border border-slate-200/70 dark:divide-white/[0.07] dark:border-white/[0.08]" aria-label={`${selectionLabel} internal issues`}>
+          {matchingIssues.map((issue) => {
+            const IssueIcon = issue.status === 'done' ? Check : CircleDot
+            return (
+              <li key={issue.id} className="flex min-w-0 flex-col gap-3 p-4 transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-white dark:hover:bg-white/[0.04] sm:p-5">
+                <div className="flex min-w-0 items-start gap-3">
+                  <IssueIcon className="mt-0.5 size-4 shrink-0 text-cyan-700 dark:text-cyan-300" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-semibold text-slate-900 dark:text-white">{issue.title}</p>
+                    <p className="mt-1 break-words text-xs text-slate-600 dark:text-slate-400">
+                      Project: {issue.projectName ?? 'Project unavailable'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 pl-7">
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${issueTypeClass(issue.type)}`}>{issueTypeLabel(issue.type)}</span>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${issueStatusClass(issue.status)}`}>{statusLabel(issue.status)}</span>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${issuePriorityClass(issue.priority)}`}>{issuePriorityLabel(issue.priority)}</span>
+                </div>
+                {issue.projectName ? (
+                  <Link
+                    to={`/app/projects/${encodeURIComponent(issue.project_id)}#issues-heading`}
+                    className="makko-focus ml-7 inline-flex min-h-9 w-fit items-center gap-1 text-xs font-semibold text-cyan-700 underline decoration-cyan-500/40 underline-offset-4 transition hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100"
+                  >
+                    Open project issues
+                    <ArrowRight className="size-3.5" aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <span className="ml-7 text-xs font-medium text-slate-500 dark:text-slate-400">Project unavailable</span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </section>
   )
 }
