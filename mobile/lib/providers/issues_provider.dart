@@ -1,0 +1,155 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'activity_provider.dart';
+import 'auth_provider.dart';
+import 'dashboard_provider.dart';
+import '../models/issue.dart';
+import '../services/issue_service.dart';
+
+final issueServiceProvider = Provider((ref) => IssueService());
+
+class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
+  IssueFilters _filters = const IssueFilters();
+  int _requestGeneration = 0;
+  bool _loadingMore = false;
+  String? _activeUserId;
+
+  @override
+  Future<IssuePage> build(String arg) async {
+    final userId = ref.watch(authUserIdProvider);
+    if (_activeUserId != userId) {
+      _activeUserId = userId;
+      _filters = const IssueFilters();
+      _requestGeneration++;
+      _loadingMore = false;
+    }
+    if (userId == null) return IssuePage.empty();
+    return _fetchIssues(filters: _filters);
+  }
+
+  Future<IssuePage> _fetchIssues({
+    int page = 1,
+    IssueFilters filters = const IssueFilters(),
+  }) async {
+    return ref
+        .read(issueServiceProvider)
+        .listIssues(arg, page: page, filters: filters);
+  }
+
+  Future<void> refresh({IssueFilters? filters}) async {
+    final selectedFilters = filters ?? _filters;
+    _filters = selectedFilters;
+    final generation = ++_requestGeneration;
+    state = const AsyncValue.loading();
+    try {
+      final page = await _fetchIssues(filters: selectedFilters);
+      if (generation == _requestGeneration) state = AsyncValue.data(page);
+    } catch (error, stack) {
+      if (generation == _requestGeneration) {
+        state = AsyncValue.error(error, stack);
+      }
+      Error.throwWithStackTrace(error, stack);
+    }
+  }
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (_loadingMore || current == null || current.page >= current.pageCount) {
+      return;
+    }
+    final generation = _requestGeneration;
+    _loadingMore = true;
+    try {
+      final next = await _fetchIssues(
+        page: current.page + 1,
+        filters: _filters,
+      );
+      if (generation == _requestGeneration) {
+        state = AsyncValue.data(mergeIssuePages(current, next));
+      }
+    } finally {
+      _loadingMore = false;
+    }
+  }
+
+  Future<void> createIssue({
+    required String title,
+    String? description,
+    required String type,
+    required String priority,
+    required String status,
+  }) async {
+    await ref
+        .read(issueServiceProvider)
+        .createIssue(
+          arg,
+          title: title,
+          description: description,
+          type: type,
+          priority: priority,
+          status: status,
+        );
+    // Refresh issues list
+    ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(issueStatusCountsProvider(arg));
+    ref.invalidate(activityProvider(arg));
+    await refresh();
+  }
+
+  Future<void> updateIssue({
+    required String issueId,
+    required String title,
+    String? description,
+    required String type,
+    required String priority,
+    required String status,
+    IssueFilters? filters,
+  }) async {
+    await ref
+        .read(issueServiceProvider)
+        .updateIssue(
+          arg,
+          issueId,
+          title: title,
+          description: description,
+          type: type,
+          priority: priority,
+          status: status,
+        );
+    ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(issueStatusCountsProvider(arg));
+    ref.invalidate(activityProvider(arg));
+    await refresh(filters: filters);
+  }
+
+  Future<void> deleteIssue(String issueId, {IssueFilters? filters}) async {
+    await ref.read(issueServiceProvider).deleteIssue(arg, issueId);
+    ref.invalidate(dashboardStatsProvider);
+    ref.invalidate(issueStatusCountsProvider(arg));
+    ref.invalidate(activityProvider(arg));
+    await refresh(filters: filters);
+  }
+}
+
+final issuesProvider =
+    AsyncNotifierProviderFamily<IssuesNotifier, IssuePage, String>(() {
+      return IssuesNotifier();
+    });
+
+final issueStatusCountsProvider = FutureProvider.autoDispose
+    .family<Map<String, int>, String>((ref, projectId) {
+      if (ref.watch(authUserIdProvider) == null) {
+        return const {'todo': 0, 'in_progress': 0, 'done': 0};
+      }
+      return ref.read(issueServiceProvider).statusCounts(projectId);
+    });
+
+final issueProvider = FutureProvider.autoDispose.family<Issue?, IssueLookup>((
+  ref,
+  lookup,
+) {
+  if (ref.watch(authUserIdProvider) == null) return null;
+  return ref
+      .read(issueServiceProvider)
+      .getIssue(lookup.projectId, lookup.issueId);
+});
