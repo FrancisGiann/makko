@@ -191,40 +191,69 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
                   alignLabelWithHint: true,
                 ),
               ),
-              const SizedBox(height: 16),
-              _DropdownField(
-                label: 'Type',
-                value: _type,
-                options: const {'task': 'Task', 'bug': 'Bug'},
-                onChanged: editReady && !_isLoading
-                    ? (value) => setState(() => _type = value)
-                    : null,
+              const SizedBox(height: 18),
+              _SectionLabel(label: 'Type'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'task',
+                      label: Text('Task'),
+                      icon: Icon(Icons.check_circle_outline, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: 'bug',
+                      label: Text('Bug'),
+                      icon: Icon(Icons.bug_report_outlined, size: 18),
+                    ),
+                  ],
+                  selected: {_type},
+                  onSelectionChanged: editReady && !_isLoading
+                      ? (newSelection) =>
+                          setState(() => _type = newSelection.first)
+                      : null,
+                ),
               ),
-              const SizedBox(height: 12),
-              _DropdownField(
-                label: 'Priority',
-                value: _priority,
-                options: const {
-                  'low': 'Low',
-                  'medium': 'Medium',
-                  'high': 'High',
-                },
-                onChanged: editReady && !_isLoading
-                    ? (value) => setState(() => _priority = value)
-                    : null,
+              const SizedBox(height: 18),
+              _SectionLabel(label: 'Priority'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'low', label: Text('Low')),
+                    ButtonSegment(value: 'medium', label: Text('Medium')),
+                    ButtonSegment(value: 'high', label: Text('High')),
+                  ],
+                  selected: {_priority},
+                  onSelectionChanged: editReady && !_isLoading
+                      ? (newSelection) =>
+                          setState(() => _priority = newSelection.first)
+                      : null,
+                ),
               ),
-              const SizedBox(height: 12),
-              _DropdownField(
-                label: 'Status',
-                value: _status,
-                options: const {
-                  'todo': 'To do',
-                  'in_progress': 'In progress',
-                  'done': 'Done',
-                },
-                onChanged: editReady && !_isLoading
-                    ? (value) => setState(() => _status = value)
-                    : null,
+              const SizedBox(height: 18),
+              _SectionLabel(label: 'Status'),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'todo', label: Text('To do')),
+                    ButtonSegment(
+                      value: 'in_progress',
+                      label: Text('In progress'),
+                    ),
+                    ButtonSegment(value: 'done', label: Text('Done')),
+                  ],
+                  selected: {_status},
+                  onSelectionChanged: editReady && !_isLoading
+                      ? (newSelection) =>
+                          setState(() => _status = newSelection.first)
+                      : null,
+                ),
               ),
               if (_error != null)
                 Padding(
@@ -253,35 +282,20 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
   }
 }
 
-class _DropdownField extends StatelessWidget {
+class _SectionLabel extends StatelessWidget {
   final String label;
-  final String value;
-  final Map<String, String> options;
-  final ValueChanged<String>? onChanged;
-  const _DropdownField({
-    required this.label,
-    required this.value,
-    required this.options,
-    required this.onChanged,
-  });
+  const _SectionLabel({required this.label});
+
   @override
-  Widget build(BuildContext context) => DropdownButtonFormField<String>(
-    // FormField keeps its own value; remount when async edit data reseeds it.
-    key: ValueKey<String>('$label:$value'),
-    initialValue: value,
-    decoration: InputDecoration(labelText: label),
-    items: options.entries
-        .map(
-          (entry) =>
-              DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-        )
-        .toList(),
-    onChanged: onChanged == null
-        ? null
-        : (next) {
-            if (next != null) onChanged!(next);
-          },
-  );
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
 }
 
 class _InlineIssueError extends StatelessWidget {

@@ -22,16 +22,19 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _tagsController = TextEditingController();
+  List<String> _tags = [];
   bool _isLoading = false;
   bool _seeded = false;
   String? _error;
+
+  String _initialName = '';
+  String _initialDescription = '';
+  List<String> _initialTags = [];
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _tagsController.dispose();
     super.dispose();
   }
 
@@ -40,20 +43,57 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
     _seeded = true;
     _nameController.text = project.name;
     _descriptionController.text = project.description ?? '';
-    _tagsController.text = project.tags.join(', ');
+    _tags = List<String>.from(project.tags);
+    _initialName = project.name;
+    _initialDescription = project.description ?? '';
+    _initialTags = List<String>.from(project.tags);
+  }
+
+  bool get _isDirty {
+    if (_nameController.text.trim() != _initialName.trim()) return true;
+    if (_descriptionController.text.trim() != _initialDescription.trim()) {
+      return true;
+    }
+    if (_tags.length != _initialTags.length) return true;
+    for (var i = 0; i < _tags.length; i++) {
+      if (_tags[i] != _initialTags[i]) return true;
+    }
+    return false;
+  }
+
+  Future<bool> _confirmDiscard() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text(
+          'You have unsaved changes. Are you sure you want to discard them?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final tags = _tagsController.text
-        .split(',')
-        .map((tag) => tag.trim())
-        .where((tag) => tag.isNotEmpty)
-        .toList();
     final unique = <String>{};
-    if (tags.length > 20 ||
-        tags.any((tag) => tag.length > 40) ||
-        tags.any((tag) => !unique.add(tag.toLowerCase()))) {
+    if (_tags.length > 20 ||
+        _tags.any((tag) => tag.length > 40) ||
+        _tags.any((tag) => !unique.add(tag.toLowerCase()))) {
       setState(
         () => _error = 'Use up to 20 unique tags, each 40 characters or fewer.',
       );
@@ -71,7 +111,7 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
           description: _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
-          tags: tags,
+          tags: _tags,
         );
       } else {
         await notifier.updateProject(
@@ -80,7 +120,7 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
           description: _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
-          tags: tags,
+          tags: _tags,
         );
       }
       if (mounted) context.pop();
@@ -112,113 +152,219 @@ class _CreateProjectSheetState extends ConsumerState<CreateProjectSheet> {
       if (match != null) _seed(match);
     }
     final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit project' : 'New project'),
-        leading: IconButton(
-          tooltip: 'Close',
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.close_rounded),
+
+    return PopScope(
+      canPop: !_isDirty || _isLoading,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final discard = await _confirmDiscard();
+        if (discard && context.mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.isEditing ? 'Edit project' : 'New project'),
+          leading: IconButton(
+            tooltip: 'Close',
+            onPressed: () async {
+              if (_isDirty && !_isLoading) {
+                final discard = await _confirmDiscard();
+                if (discard && context.mounted) {
+                  context.pop();
+                }
+              } else {
+                context.pop();
+              }
+            },
+            icon: const Icon(Icons.close_rounded),
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              if (widget.projectId != null && projects.isLoading && !_seeded)
-                const LinearProgressIndicator(),
-              if (widget.projectId != null && projects.hasError)
-                _InlineError(
-                  message: 'This project could not be loaded. Go back and try again.',
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                if (widget.projectId != null && projects.isLoading && !_seeded)
+                  const LinearProgressIndicator(),
+                if (widget.projectId != null && projects.hasError)
+                  _InlineError(
+                    message:
+                        'This project could not be loaded. Go back and try again.',
+                  ),
+                Text(
+                  'Keep the context close',
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
-              Text(
-                'Keep the context close',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                widget.isEditing
-                    ? 'Refine the project details and tags.'
-                    : 'Give the next piece of work a home.',
-                style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.sentences,
-                validator: Validation.validateName,
-                decoration: const InputDecoration(
-                  labelText: 'Project name',
-                  hintText: 'e.g. Weekend compiler',
+                const SizedBox(height: 6),
+                Text(
+                  widget.isEditing
+                      ? 'Refine the project details and tags.'
+                      : 'Give the next piece of work a home.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: 4,
-                minLines: 3,
-                validator: (value) => (value?.trim().length ?? 0) > 5000
-                    ? 'Description must be 5,000 characters or fewer'
-                    : null,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'What are you building?',
-                  alignLabelWithHint: true,
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _nameController,
+                  textCapitalization: TextCapitalization.sentences,
+                  validator: Validation.validateName,
+                  decoration: const InputDecoration(
+                    labelText: 'Project name',
+                    hintText: 'e.g. Weekend compiler',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _tagsController,
-                textCapitalization: TextCapitalization.none,
-                validator: (value) =>
-                    (value
-                                ?.split(',')
-                                .where((tag) => tag.trim().isNotEmpty)
-                                .length ??
-                            0) >
-                        20
-                    ? 'Use up to 20 tags'
-                    : null,
-                decoration: const InputDecoration(
-                  labelText: 'Tags',
-                  hintText: 'flutter, shipped, client (comma separated)',
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _descriptionController,
+                  textCapitalization: TextCapitalization.sentences,
+                  maxLines: 4,
+                  minLines: 3,
+                  validator: (value) => (value?.trim().length ?? 0) > 5000
+                      ? 'Description must be 5,000 characters or fewer'
+                      : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'What are you building?',
+                    alignLabelWithHint: true,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Tags stay private to your workspace.',
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: _InlineError(message: _error!),
+                const SizedBox(height: 16),
+                _TagInput(
+                  tags: _tags,
+                  enabled: !_isLoading,
+                  onChanged: (tags) => setState(() => _tags = tags),
                 ),
-              const SizedBox(height: 28),
-              FilledButton.icon(
-                onPressed: _isLoading ? null : _submit,
-                icon: _isLoading
-                    ? const SizedBox.shrink()
-                    : Icon(
-                        widget.isEditing
-                            ? Icons.check_rounded
-                            : Icons.add_rounded,
-                      ),
-                label: _isLoading
-                    ? const _ProgressLabel()
-                    : Text(
-                        widget.isEditing ? 'Save changes' : 'Create project',
-                      ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Tags stay private to your workspace.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: _InlineError(message: _error!),
+                  ),
+                const SizedBox(height: 28),
+                FilledButton.icon(
+                  onPressed: _isLoading ? null : _submit,
+                  icon: _isLoading
+                      ? const SizedBox.shrink()
+                      : Icon(
+                          widget.isEditing
+                              ? Icons.check_rounded
+                              : Icons.add_rounded,
+                        ),
+                  label: _isLoading
+                      ? const _ProgressLabel()
+                      : Text(
+                          widget.isEditing ? 'Save changes' : 'Create project',
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TagInput extends StatefulWidget {
+  final List<String> tags;
+  final ValueChanged<List<String>> onChanged;
+  final bool enabled;
+
+  const _TagInput({
+    required this.tags,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  @override
+  State<_TagInput> createState() => _TagInputState();
+}
+
+class _TagInputState extends State<_TagInput> {
+  final _controller = TextEditingController();
+  String? _tagError;
+
+  void _addTag() {
+    final raw = _controller.text.trim();
+    if (raw.isEmpty) return;
+    if (widget.tags.length >= 20) {
+      setState(() => _tagError = 'Maximum 20 tags allowed.');
+      return;
+    }
+    if (raw.length > 40) {
+      setState(() => _tagError = 'Tag must be 40 characters or fewer.');
+      return;
+    }
+    if (widget.tags.any((t) => t.toLowerCase() == raw.toLowerCase())) {
+      setState(() => _tagError = 'Tag already added.');
+      return;
+    }
+    final next = List<String>.from(widget.tags)..add(raw);
+    _controller.clear();
+    setState(() => _tagError = null);
+    widget.onChanged(next);
+  }
+
+  void _removeTag(int index) {
+    final next = List<String>.from(widget.tags)..removeAt(index);
+    setState(() => _tagError = null);
+    widget.onChanged(next);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _controller,
+          enabled: widget.enabled,
+          onFieldSubmitted: (_) => _addTag(),
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: 'Add tag',
+            hintText: 'e.g. mobile, frontend, mvp',
+            errorText: _tagError,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.add_rounded),
+              tooltip: 'Add tag',
+              onPressed: widget.enabled ? _addTag : null,
+            ),
+          ),
+        ),
+        if (widget.tags.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (var i = 0; i < widget.tags.length; i++)
+                InputChip(
+                  label: Text(widget.tags[i]),
+                  onDeleted: widget.enabled ? () => _removeTag(i) : null,
+                  deleteIconColor: scheme.onSurfaceVariant,
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

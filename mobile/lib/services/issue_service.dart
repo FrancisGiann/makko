@@ -8,6 +8,7 @@ class IssuePage {
   final int page;
   final int pageSize;
   final int pageCount;
+  final String? paginationError;
 
   IssuePage({
     required this.items,
@@ -15,6 +16,7 @@ class IssuePage {
     required this.page,
     required this.pageSize,
     required this.pageCount,
+    this.paginationError,
   });
 
   factory IssuePage.empty() {
@@ -26,6 +28,15 @@ class IssuePage {
       pageCount: 0,
     );
   }
+
+  IssuePage copyWith({String? paginationError}) => IssuePage(
+    items: items,
+    total: total,
+    page: page,
+    pageSize: pageSize,
+    pageCount: pageCount,
+    paginationError: paginationError,
+  );
 }
 
 /// Combines adjacent server pages while keeping the server's order and
@@ -84,7 +95,7 @@ class IssueFilters {
 class IssueService {
   static const _issueColumns =
       'id,project_id,title,description,type,priority,status,created_at,updated_at';
-  static const pageSize = 5;
+  static const int pageSize = 15;
 
   Future<Map<String, int>> statusCounts(String projectId) async {
     final project = Validation.requireId(projectId, 'Project');

@@ -33,6 +33,64 @@ class _FakeGithubService extends GithubService {
 }
 
 void main() {
+  test('GitHub sync response parser enforces server contract', () {
+    final result = parseGithubSyncResponse({
+      'data': {
+        'project_id': 'project-1',
+        'repo_full_name': 'owner/repo',
+        'commits_synced': 30,
+        'issues_synced': 500,
+        'last_synced_at': '2026-01-03T00:00:00.000Z',
+      },
+    }, projectId: 'project-1');
+    expect(result.repoFullName, 'owner/repo');
+    expect(result.commitsSynced, 30);
+    expect(result.issuesSynced, 500);
+  });
+
+  test('GitHub sync response parser rejects mismatch, fractional, and overflow data', () {
+    Map<String, dynamic> body({
+      Object projectId = 'project-1',
+      Object repository = 'owner/repo',
+      Object commits = 1,
+      Object issues = 1,
+      Object timestamp = '2026-01-03T00:00:00.000Z',
+    }) {
+      return {
+        'data': {
+          'project_id': projectId,
+          'repo_full_name': repository,
+          'commits_synced': commits,
+          'issues_synced': issues,
+          'last_synced_at': timestamp,
+        },
+      };
+    }
+
+    expect(
+      () => parseGithubSyncResponse(
+        body(projectId: 'other'),
+        projectId: 'project-1',
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => parseGithubSyncResponse(body(commits: 1.5), projectId: 'project-1'),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => parseGithubSyncResponse(body(issues: 501), projectId: 'project-1'),
+      throwsA(isA<FormatException>()),
+    );
+    expect(
+      () => parseGithubSyncResponse(
+        body(repository: 'bad repo'),
+        projectId: 'project-1',
+      ),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('GitHub connect failure remains visible and propagates', () async {
     final fake = _FakeGithubService()..failConnect = true;
     final container = ProviderContainer(

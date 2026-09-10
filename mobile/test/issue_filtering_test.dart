@@ -75,4 +75,17 @@ void main() {
       expect(merged.pageCount, 2);
     },
   );
+
+  test('pagination errors retain the currently visible page', () {
+    final page = IssuePage(
+      items: [issues.first],
+      total: 6,
+      page: 1,
+      pageSize: 5,
+      pageCount: 2,
+    );
+    final failed = page.copyWith(paginationError: 'Try again.');
+    expect(failed.items.single.id, page.items.single.id);
+    expect(failed.paginationError, 'Try again.');
+  });
 }

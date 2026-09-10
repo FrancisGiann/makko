@@ -12,6 +12,7 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
   IssueFilters _filters = const IssueFilters();
   int _requestGeneration = 0;
   bool _loadingMore = false;
+  int _loadMoreRequest = 0;
   String? _activeUserId;
 
   @override
@@ -22,6 +23,7 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
       _filters = const IssueFilters();
       _requestGeneration++;
       _loadingMore = false;
+      _loadMoreRequest++;
     }
     if (userId == null) return IssuePage.empty();
     return _fetchIssues(filters: _filters);
@@ -58,7 +60,9 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
       return;
     }
     final generation = _requestGeneration;
+    final request = ++_loadMoreRequest;
     _loadingMore = true;
+    state = AsyncValue.data(current.copyWith(paginationError: null));
     try {
       final next = await _fetchIssues(
         page: current.page + 1,
@@ -67,8 +71,16 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
       if (generation == _requestGeneration) {
         state = AsyncValue.data(mergeIssuePages(current, next));
       }
+    } catch (_) {
+      if (generation == _requestGeneration && request == _loadMoreRequest) {
+        state = AsyncValue.data(
+          current.copyWith(
+            paginationError: 'Unable to load more issues. Try again.',
+          ),
+        );
+      }
     } finally {
-      _loadingMore = false;
+      if (request == _loadMoreRequest) _loadingMore = false;
     }
   }
 

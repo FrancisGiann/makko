@@ -14,7 +14,14 @@ import '../../widgets/makko_card.dart';
 
 class ProjectActivitySection extends ConsumerStatefulWidget {
   final String projectId;
-  const ProjectActivitySection({super.key, required this.projectId});
+  final bool embeddedInTab;
+
+  const ProjectActivitySection({
+    super.key,
+    required this.projectId,
+    this.embeddedInTab = false,
+  });
+
   @override
   ConsumerState<ProjectActivitySection> createState() =>
       _ProjectActivitySectionState();
@@ -45,13 +52,15 @@ class _ProjectActivitySectionState
     if (_scope == ActivityScope.last30Days && initial.hasValue) {
       _scheduleProviderPage(initial.value!);
     }
-    if (initial.hasError && _items.isEmpty)
+    if (initial.hasError && _items.isEmpty) {
       return MakkoErrorState(message: 'Unable to load project activity.');
-    if (initial.isLoading && _items.isEmpty)
+    }
+    if (initial.isLoading && _items.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(24),
         child: Center(child: CircularProgressIndicator()),
       );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,19 +102,56 @@ class _ProjectActivitySectionState
             title: 'No activity yet',
             subtitle: 'Project and issue changes will appear here.',
           )
+        else if (widget.embeddedInTab)
+          MakkoCard(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < _items.length; i++)
+                  _TimelineActivityRow(
+                    log: _items[i],
+                    isFirst: i == 0,
+                    isLast:
+                        i == _items.length - 1 && !_loadingMore && !_hasMore,
+                  ),
+                if (_loadingMore)
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                if (!_loadingMore && _hasMore)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: _loadMore,
+                        child: const Text('Load more activity'),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          )
         else
           MakkoCard(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: SizedBox(
               height: _activityViewportHeight(context),
-              child: ListView.separated(
+              child: ListView.builder(
                 primary: false,
                 physics: const ClampingScrollPhysics(),
                 itemCount: _items.length + (_loadingMore || _hasMore ? 1 : 0),
-                separatorBuilder: (_, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   if (index < _items.length) {
-                    return _ActivityRow(log: _items[index]);
+                    return _TimelineActivityRow(
+                      log: _items[index],
+                      isFirst: index == 0,
+                      isLast: index == _items.length - 1 &&
+                          !_loadingMore &&
+                          !_hasMore,
+                    );
                   }
                   if (_loadingMore) {
                     return const Padding(
@@ -152,7 +198,7 @@ class _ProjectActivitySectionState
       final page = await ref
           .read(activityServiceProvider)
           .getActivityLogs(widget.projectId, scope: scope);
-      if (mounted && generation == _generation && _scope == scope)
+      if (mounted && generation == _generation && _scope == scope) {
         setState(() {
           _items
             ..clear()
@@ -160,9 +206,11 @@ class _ProjectActivitySectionState
           _hasMore = page.hasMore;
           _page = page.page;
         });
+      }
     } catch (error) {
-      if (mounted && generation == _generation && _scope == scope)
+      if (mounted && generation == _generation && _scope == scope) {
         setState(() => _error = error);
+      }
     }
   }
 
@@ -210,7 +258,7 @@ class _ProjectActivitySectionState
       final page = await ref
           .read(activityServiceProvider)
           .getActivityLogs(widget.projectId, page: _page + 1, scope: _scope);
-      if (mounted && generation == _generation && _scope == scope)
+      if (mounted && generation == _generation && _scope == scope) {
         setState(() {
           final merged = mergeActivityItems(_items, page.items);
           _items
@@ -219,12 +267,15 @@ class _ProjectActivitySectionState
           _hasMore = page.hasMore;
           _page = page.page;
         });
+      }
     } catch (error) {
-      if (mounted && generation == _generation && _scope == scope)
+      if (mounted && generation == _generation && _scope == scope) {
         setState(() => _error = error);
+      }
     } finally {
-      if (mounted && generation == _generation && _scope == scope)
+      if (mounted && generation == _generation && _scope == scope) {
         setState(() => _loadingMore = false);
+      }
     }
   }
 
@@ -262,50 +313,112 @@ class _ProjectActivitySectionState
   }
 }
 
-class _ActivityRow extends StatelessWidget {
+class _TimelineActivityRow extends StatelessWidget {
   final ActivityLog log;
-  const _ActivityRow({required this.log});
+  final bool isFirst;
+  final bool isLast;
+
+  const _TimelineActivityRow({
+    required this.log,
+    required this.isFirst,
+    required this.isLast,
+  });
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = log.type.contains('delete')
-        ? context.makkoSemantics.bug
-        : log.type.contains('update')
-        ? context.makkoSemantics.medium
-        : context.makkoSemantics.inProgress;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    final color = _actionColor(context, log.type);
+    final icon = _actionIcon(log.type);
+    final lineColor = scheme.primary.withValues(alpha: 0.3);
+
+    return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            margin: const EdgeInsets.only(top: 5),
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          SizedBox(
+            width: 32,
+            child: Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                Positioned(
+                  top: isFirst ? 13 : 0,
+                  bottom: isLast ? 13 : 0,
+                  child: Container(
+                    width: 2,
+                    color: lineColor,
+                  ),
+                ),
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: color,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 14,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  log.description,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  _relative(log.createdAt),
-                  style: Theme.of(context).textTheme.labelMedium
-                      ?.copyWith(color: scheme.onSurfaceVariant),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    log.description,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _relative(log.createdAt),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+IconData _actionIcon(String type) {
+  if (type.contains('create') || type.contains('add')) {
+    return Icons.add_rounded;
+  }
+  if (type.contains('delete') || type.contains('remove')) {
+    return Icons.delete_outline_rounded;
+  }
+  if (type.contains('update') || type.contains('edit')) {
+    return Icons.edit_outlined;
+  }
+  return Icons.info_outline_rounded;
+}
+
+Color _actionColor(BuildContext context, String type) {
+  if (type.contains('delete') || type.contains('remove')) {
+    return context.makkoSemantics.bug;
+  }
+  if (type.contains('update') || type.contains('edit')) {
+    return context.makkoSemantics.medium;
+  }
+  return context.makkoSemantics.inProgress;
 }
 
 String _relative(DateTime date) {

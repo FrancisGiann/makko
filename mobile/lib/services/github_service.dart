@@ -16,6 +16,57 @@ class GithubProjectData {
   });
 }
 
+class GithubSyncResponse {
+  final String projectId;
+  final String repoFullName;
+  final int commitsSynced;
+  final int issuesSynced;
+  final DateTime lastSyncedAt;
+
+  const GithubSyncResponse({
+    required this.projectId,
+    required this.repoFullName,
+    required this.commitsSynced,
+    required this.issuesSynced,
+    required this.lastSyncedAt,
+  });
+}
+
+GithubSyncResponse parseGithubSyncResponse(
+  dynamic body, {
+  required String projectId,
+}) {
+  const invalid = FormatException(
+    'GitHub synchronization returned an invalid response.',
+  );
+  final data = body is Map ? body['data'] : null;
+  if (data is! Map || data['project_id'] != projectId) throw invalid;
+  final rawRepository = data['repo_full_name'];
+  if (rawRepository is! String) throw invalid;
+  String repository;
+  try {
+    repository = Validation.normalizeRepository(rawRepository);
+  } catch (_) {
+    throw invalid;
+  }
+  if (repository != rawRepository) throw invalid;
+  final commits = data['commits_synced'];
+  final issues = data['issues_synced'];
+  if (commits is! int || commits < 0 || commits > 30) throw invalid;
+  if (issues is! int || issues < 0 || issues > 500) throw invalid;
+  final timestamp = data['last_synced_at'];
+  if (timestamp is! String) throw invalid;
+  final lastSyncedAt = DateTime.tryParse(timestamp);
+  if (lastSyncedAt == null) throw invalid;
+  return GithubSyncResponse(
+    projectId: projectId,
+    repoFullName: repository,
+    commitsSynced: commits,
+    issuesSynced: issues,
+    lastSyncedAt: lastSyncedAt,
+  );
+}
+
 class GithubService {
   Future<GithubProjectData> getProjectData(String projectId) async {
     final project = Validation.requireId(projectId, 'Project');
@@ -81,19 +132,7 @@ class GithubService {
         'GitHub synchronization failed. Try again in a moment.',
       );
     }
-    final body = response.data;
-    final data = body is Map ? body['data'] : null;
-    if (data is! Map ||
-        data['project_id'] is! String ||
-        data['repo_full_name'] is! String ||
-        data['commits_synced'] is! num ||
-        data['issues_synced'] is! num ||
-        data['last_synced_at'] is! String ||
-        DateTime.tryParse(data['last_synced_at'] as String) == null) {
-      throw const FormatException(
-        'GitHub synchronization returned an invalid response.',
-      );
-    }
+    parseGithubSyncResponse(response.data, projectId: project);
   }
 
   Future<void> disconnect(String projectId, String linkId) async {
