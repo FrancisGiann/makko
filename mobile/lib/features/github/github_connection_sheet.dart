@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/github_provider.dart';
@@ -31,7 +32,7 @@ class _GithubConnectionSheetState extends ConsumerState<GithubConnectionSheet> {
       await ref
           .read(githubNotifierProvider.notifier)
           .connect(widget.projectId, parts[0], parts[1]);
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) context.pop();
     } catch (error) {
       if (mounted) setState(() => _error = _friendlyGithubError(error));
     }
@@ -46,7 +47,7 @@ class _GithubConnectionSheetState extends ConsumerState<GithubConnectionSheet> {
         title: const Text('Connect GitHub'),
         leading: IconButton(
           tooltip: 'Close',
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           icon: const Icon(Icons.close_rounded),
         ),
       ),

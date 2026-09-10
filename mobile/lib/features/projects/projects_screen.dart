@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/makko_logo.dart';
 import '../../widgets/makko_card.dart';
+import '../../widgets/shimmer_loading.dart';
 import '../../widgets/tag_chip.dart';
 
 class ProjectsScreen extends ConsumerWidget {
@@ -39,7 +42,7 @@ class ProjectsScreen extends ConsumerWidget {
       ),
       body: projectsAsync.when(
         skipLoadingOnRefresh: false,
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _ProjectsLoadingSkeleton(),
         error: (error, _) => MakkoErrorState(
           message: _friendlyProjectError(error),
           onRetry: () => ref.read(projectsProvider.notifier).refresh(),
@@ -77,18 +80,24 @@ class ProjectsScreen extends ConsumerWidget {
                       ?.copyWith(color: scheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 20),
-                ...projects.map((project) {
+                ...projects.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final project = entry.value;
                   final summary = summaries
                       .where((item) => item.id == project.id)
                       .toList();
                   final counts = summary.isEmpty ? null : summary.first;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _ProjectCard(
-                      project: project,
-                      openCount: counts?.open ?? 0,
-                      totalCount: counts?.total ?? 0,
-                      onTap: () => context.push('/projects/${project.id}'),
+                    child: _StaggeredCard(
+                      index: index,
+                      child: _ProjectCard(
+                        project: project,
+                        openCount: counts?.open ?? 0,
+                        completedCount: counts?.completed ?? 0,
+                        totalCount: counts?.total ?? 0,
+                        onTap: () => context.push('/projects/${project.id}'),
+                      ),
                     ),
                   );
                 }),
@@ -101,20 +110,159 @@ class ProjectsScreen extends ConsumerWidget {
   }
 }
 
+class _StaggeredCard extends StatefulWidget {
+  final int index;
+  final Widget child;
+
+  const _StaggeredCard({
+    required this.index,
+    required this.child,
+  });
+
+  @override
+  State<_StaggeredCard> createState() => _StaggeredCardState();
+}
+
+class _StaggeredCardState extends State<_StaggeredCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    final delayMs = (widget.index * 80).clamp(0, 600);
+    if (delayMs == 0) {
+      _controller.forward();
+    } else {
+      _timer = Timer(Duration(milliseconds: delayMs), () {
+        if (mounted) _controller.forward();
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      _timer?.cancel();
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      return widget.child;
+    }
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class _ProjectsLoadingSkeleton extends StatelessWidget {
+  const _ProjectsLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerContainer(
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
+        children: [
+          const ShimmerBox(width: 140, height: 32),
+          const SizedBox(height: 8),
+          const ShimmerBox(width: 200, height: 16),
+          const SizedBox(height: 20),
+          for (int i = 0; i < 4; i++) ...[
+            MakkoCard(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ShimmerBox(
+                    width: 42,
+                    height: 42,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(MakkoShapes.radius),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        ShimmerBox(width: 160, height: 20),
+                        SizedBox(height: 8),
+                        ShimmerBox(width: double.infinity, height: 14),
+                        SizedBox(height: 12),
+                        Row(
+                          children: [
+                            ShimmerBox(width: 68, height: 22),
+                            SizedBox(width: 8),
+                            ShimmerBox(width: 68, height: 22),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _ProjectCard extends StatelessWidget {
   final Project project;
   final int openCount;
+  final int completedCount;
   final int totalCount;
   final VoidCallback onTap;
   const _ProjectCard({
     required this.project,
     required this.openCount,
+    required this.completedCount,
     required this.totalCount,
     required this.onTap,
   });
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final semantics = context.makkoSemantics;
     return Semantics(
       button: true,
       label: 'Open project ${project.name}',
@@ -147,7 +295,7 @@ class _ProjectCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     if (project.description != null &&
-                        project.description!.isNotEmpty) ...[
+                      project.description!.isNotEmpty) ...[
                       const SizedBox(height: 5),
                       Text(
                         project.description!,
@@ -171,23 +319,23 @@ class _ProjectCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(
-                          Icons.radio_button_checked_rounded,
-                          size: 15,
-                          color: context.makkoSemantics.inProgress,
+                        _CountPill(
+                          label: '$openCount open',
+                          color: scheme.primary,
                         ),
-                        const SizedBox(width: 5),
-                        Text(
-                          '$openCount open',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 8),
+                        _CountPill(
+                          label: '$completedCount done',
+                          color: semantics.done,
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '$totalCount total',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
+                        if (totalCount > 0) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '$totalCount total',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -197,6 +345,32 @@ class _ProjectCard extends StatelessWidget {
               Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CountPill extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _CountPill({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(MakkoShapes.radiusFull),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
