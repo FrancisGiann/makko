@@ -32,15 +32,43 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
+  Future<void> _confirmSignOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          "You'll need to sign in again to access your workspace.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
+    User? user;
+    try {
+      user = Supabase.instance.client.auth.currentUser;
+    } catch (_) {}
     final email = user?.email ?? 'Signed-in Makko builder';
     final mode = ref.watch(themeModeProvider);
-    final dark =
-        mode == ThemeMode.dark ||
-        (mode == ThemeMode.system &&
-            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
@@ -98,27 +126,51 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           Text('Appearance', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 10),
           MakkoCard(
-            padding: EdgeInsets.zero,
-            child: SwitchListTile.adaptive(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 6,
-              ),
-              secondary: Icon(
-                dark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                color: scheme.primary,
-              ),
-              title: const Text('Dark mode'),
-              subtitle: Text(
-                dark ? 'Deep Harbor surfaces' : 'Light Canvas surfaces',
-              ),
-              value: dark,
-              onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Theme mode',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(
+                        value: ThemeMode.system,
+                        label: Text('System'),
+                        icon: Icon(Icons.brightness_auto_outlined, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.light,
+                        label: Text('Light'),
+                        icon: Icon(Icons.light_mode_outlined, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.dark,
+                        label: Text('Dark'),
+                        icon: Icon(Icons.dark_mode_outlined, size: 18),
+                      ),
+                    ],
+                    selected: {mode},
+                    onSelectionChanged: (selection) {
+                      ref
+                          .read(themeModeProvider.notifier)
+                          .setMode(selection.first);
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
-            onPressed: _signingOut ? null : _signOut,
+            onPressed: _signingOut ? null : _confirmSignOut,
             icon: _signingOut
                 ? const SizedBox(
                     width: 18,
@@ -134,10 +186,21 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ),
           const SizedBox(height: 32),
           Center(
-            child: Text(
-              'Makko · Personal command center',
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+            child: Column(
+              children: [
+                Text(
+                  'Makko · Personal command center',
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Makko v1.0.0',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

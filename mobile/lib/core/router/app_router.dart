@@ -13,6 +13,8 @@ import '../../features/projects/project_detail_screen.dart';
 import '../../features/projects/projects_screen.dart';
 import '../../providers/auth_provider.dart';
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authStateNotifier = ValueNotifier<AsyncValue<AuthState>>(
     const AsyncLoading(),
@@ -24,6 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/dashboard',
     refreshListenable: authStateNotifier,
     redirect: (context, state) {
@@ -63,6 +66,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'new',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, _) => const CreateProjectSheet(),
                   ),
                   GoRoute(
@@ -73,18 +77,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                     routes: [
                       GoRoute(
                         path: 'edit',
+                        parentNavigatorKey: _rootNavigatorKey,
                         builder: (_, state) => CreateProjectSheet(
                           projectId: state.pathParameters['id']!,
                         ),
                       ),
                       GoRoute(
                         path: 'issues/new',
+                        parentNavigatorKey: _rootNavigatorKey,
                         builder: (_, state) => CreateIssueSheet(
                           projectId: state.pathParameters['id']!,
                         ),
                       ),
                       GoRoute(
                         path: 'issues/:issueId/edit',
+                        parentNavigatorKey: _rootNavigatorKey,
                         builder: (_, state) => CreateIssueSheet(
                           projectId: state.pathParameters['id']!,
                           issueId: state.pathParameters['issueId']!,

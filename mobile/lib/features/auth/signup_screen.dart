@@ -18,6 +18,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String? _error;
   String? _success;
@@ -36,7 +38,8 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       if (mounted && result.requiresEmailConfirmation) {
         setState(
-          () => _success = 'Account created. Check your email to confirm your address, then sign in.',
+          () => _success =
+              'Account created. Check your email to confirm your address, then sign in.',
         );
       }
     } catch (error) {
@@ -79,8 +82,9 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Keep projects, issues, and code context in one calm place.',
-                    style: Theme.of(context).textTheme.bodyLarge
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 28),
                   Card(
@@ -111,27 +115,55 @@ class _SignupScreenState extends State<SignupScreen> {
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _passwordController,
-                              obscureText: true,
+                              obscureText: _obscurePassword,
                               textInputAction: TextInputAction.next,
                               autofillHints: const [AutofillHints.newPassword],
                               validator: Validation.validatePassword,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: Icon(Icons.lock_outline_rounded),
+                                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  tooltip: _obscurePassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                  onPressed: () => setState(
+                                    () =>
+                                        _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 14),
                             TextFormField(
                               controller: _confirmController,
-                              obscureText: true,
+                              obscureText: _obscureConfirmPassword,
                               textInputAction: TextInputAction.done,
                               validator: (value) =>
                                   value != _passwordController.text
-                                  ? 'Passwords do not match'
-                                  : null,
-                              decoration: const InputDecoration(
+                                      ? 'Passwords do not match'
+                                      : null,
+                              decoration: InputDecoration(
                                 labelText: 'Confirm password',
-                                prefixIcon: Icon(Icons.verified_user_outlined),
+                                prefixIcon: const Icon(Icons.verified_user_outlined),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureConfirmPassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                  tooltip: _obscureConfirmPassword
+                                      ? 'Show password'
+                                      : 'Hide password',
+                                  onPressed: () => setState(
+                                    () => _obscureConfirmPassword =
+                                        !_obscureConfirmPassword,
+                                  ),
+                                ),
                               ),
                               onFieldSubmitted: (_) => _submit(),
                             ),
