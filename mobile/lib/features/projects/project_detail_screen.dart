@@ -624,7 +624,15 @@ class _HorizontalFilterBar extends StatelessWidget {
         children: [
           // Status Chips
           ChoiceChip(
-            label: const Text('All status'),
+            label: const Text('Open'),
+            selected: filters.status == 'open',
+            onSelected: (selected) {
+              if (selected) onFilterChanged(status: 'open');
+            },
+          ),
+          const SizedBox(width: 6),
+          ChoiceChip(
+            label: const Text('All'),
             selected: filters.status == 'all',
             onSelected: (selected) {
               if (selected) onFilterChanged(status: 'all');
@@ -635,7 +643,7 @@ class _HorizontalFilterBar extends StatelessWidget {
             label: const Text('Todo'),
             selected: filters.status == 'todo',
             onSelected: (selected) {
-              onFilterChanged(status: selected ? 'todo' : 'all');
+              onFilterChanged(status: selected ? 'todo' : 'open');
             },
           ),
           const SizedBox(width: 6),
@@ -643,7 +651,7 @@ class _HorizontalFilterBar extends StatelessWidget {
             label: const Text('In Progress'),
             selected: filters.status == 'in_progress',
             onSelected: (selected) {
-              onFilterChanged(status: selected ? 'in_progress' : 'all');
+              onFilterChanged(status: selected ? 'in_progress' : 'open');
             },
           ),
           const SizedBox(width: 6),
@@ -651,7 +659,7 @@ class _HorizontalFilterBar extends StatelessWidget {
             label: const Text('Done'),
             selected: filters.status == 'done',
             onSelected: (selected) {
-              onFilterChanged(status: selected ? 'done' : 'all');
+              onFilterChanged(status: selected ? 'done' : 'open');
             },
           ),
 

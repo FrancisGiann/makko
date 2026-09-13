@@ -270,7 +270,7 @@ void main() {
       expect(find.text('Activity'), findsOneWidget);
 
       // Horizontal Filter Chips & Status Summary
-      expect(find.text('All status'), findsOneWidget);
+      expect(find.text('Open'), findsOneWidget);
       expect(find.text('To do'), findsOneWidget); // Status summary in meta card
       expect(find.text('Todo'), findsOneWidget); // Filter chip
       expect(find.text('In progress'), findsOneWidget); // Status summary in meta card

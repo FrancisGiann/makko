@@ -38,7 +38,7 @@ void main() {
   test('filters by exact enum and sorts without mutating source', () {
     final filtered = filterAndSortIssues(
       issues,
-      const IssueFilters(type: 'task', sort: 'priority'),
+      const IssueFilters(status: 'all', type: 'task', sort: 'priority'),
     );
     expect(filtered.map((issue) => issue.id), ['3', '2']);
     expect(issues.first.id, '1');
@@ -47,7 +47,7 @@ void main() {
   test('priority order matches the Postgres enum descending order', () {
     final sorted = filterAndSortIssues(
       issues,
-      const IssueFilters(sort: 'priority'),
+      const IssueFilters(status: 'all', sort: 'priority'),
     );
     expect(sorted.map((issue) => issue.priority), ['high', 'medium', 'low']);
   });

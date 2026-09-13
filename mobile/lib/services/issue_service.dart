@@ -92,7 +92,7 @@ class IssueFilters {
   final String sort;
 
   const IssueFilters({
-    this.status = 'all',
+    this.status = 'open',
     this.type = 'all',
     this.priority = 'all',
     this.sort = 'newest',
@@ -143,6 +143,7 @@ class IssueService {
       throw const ValidationError('Issue page is invalid.');
     if (!const [
           'all',
+          'open',
           'todo',
           'in_progress',
           'done',
@@ -164,7 +165,11 @@ class IssueService {
         .eq('project_id', project);
 
     if (filters.status != 'all') {
-      query = query.eq('status', filters.status);
+      if (filters.status == 'open') {
+        query = query.neq('status', 'done');
+      } else {
+        query = query.eq('status', filters.status);
+      }
     }
     if (filters.type != 'all') {
       query = query.eq('type', filters.type);
@@ -222,8 +227,13 @@ class IssueService {
         .from('issues')
         .select('id')
         .eq('project_id', project);
-    if (filters.status != 'all')
-      countQuery = countQuery.eq('status', filters.status);
+    if (filters.status != 'all') {
+      if (filters.status == 'open') {
+        countQuery = countQuery.neq('status', 'done');
+      } else {
+        countQuery = countQuery.eq('status', filters.status);
+      }
+    }
     if (filters.type != 'all') countQuery = countQuery.eq('type', filters.type);
     if (filters.priority != 'all')
       countQuery = countQuery.eq('priority', filters.priority);
