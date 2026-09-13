@@ -29,13 +29,20 @@ class IssuePage {
     );
   }
 
-  IssuePage copyWith({String? paginationError}) => IssuePage(
-    items: items,
-    total: total,
-    page: page,
-    pageSize: pageSize,
-    pageCount: pageCount,
-    paginationError: paginationError,
+  IssuePage copyWith({
+    List<Issue>? items,
+    int? total,
+    int? page,
+    int? pageSize,
+    int? pageCount,
+    String? paginationError,
+  }) => IssuePage(
+    items: items ?? this.items,
+    total: total ?? this.total,
+    page: page ?? this.page,
+    pageSize: pageSize ?? this.pageSize,
+    pageCount: pageCount ?? this.pageCount,
+    paginationError: paginationError ?? this.paginationError,
   );
 }
 
@@ -166,7 +173,7 @@ class IssueService {
       query = query.eq('priority', filters.priority);
     }
 
-    dynamic orderQuery = query;
+    dynamic orderQuery = query.order('status', ascending: true);
 
     switch (filters.sort) {
       case 'oldest':

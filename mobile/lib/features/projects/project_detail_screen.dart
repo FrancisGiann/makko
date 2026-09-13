@@ -507,12 +507,18 @@ class _IssuesTab extends StatelessWidget {
                       final issue = page.items[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: _IssueCard(
-                          issue: issue,
-                          onEdit: () => onEdit(issue),
-                          onDelete: () => onDelete(issue),
-                          onStatusChange: (status) =>
-                              onStatusChange(issue, status),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          child: _IssueCard(
+                            key: ValueKey('${issue.id}-${issue.status}-${issue.updatedAt}'),
+                            issue: issue,
+                            onEdit: () => onEdit(issue),
+                            onDelete: () => onDelete(issue),
+                            onStatusChange: (status) =>
+                                onStatusChange(issue, status),
+                          ),
                         ),
                       );
                     }
@@ -771,6 +777,7 @@ class _IssueCard extends StatelessWidget {
   final ValueChanged<String> onStatusChange;
 
   const _IssueCard({
+    super.key,
     required this.issue,
     required this.onEdit,
     required this.onDelete,

@@ -362,36 +362,20 @@ class _MakkoCompanionState extends State<_MakkoCompanion>
           'You have ${stats.openIssues} open $itemWord across ${stats.projectCount} $projectWord. $completionRate% complete overall.';
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 520;
-        if (isWide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAvatar(context),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSpeechBubbleCard(
-                  context,
-                  moodTag,
-                  moodColor,
-                  message,
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildAvatar(context),
-            const SizedBox(height: 12),
-            _buildSpeechBubbleCard(context, moodTag, moodColor, message),
-          ],
-        );
-      },
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildAvatar(context),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildSpeechBubbleCard(
+            context,
+            moodTag,
+            moodColor,
+            message,
+          ),
+        ),
+      ],
     );
   }
 }
