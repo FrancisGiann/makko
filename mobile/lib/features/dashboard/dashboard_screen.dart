@@ -14,7 +14,6 @@ import '../../widgets/makko_search_delegate.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/workspace_pulse_bar.dart';
 import '../github/github_contribution_graph.dart';
-import 'activity_heatmap.dart';
 import 'global_create_issue_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -138,8 +137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 22),
                   _WorkloadCard(stats: stats),
                 ],
-                const SizedBox(height: 22),
-                ActivityHeatmap(stats: stats),
+
                 const SizedBox(height: 22),
                 const GithubContributionGraph(),
               ],
