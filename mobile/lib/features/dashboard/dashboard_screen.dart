@@ -13,7 +13,9 @@ import '../../widgets/makko_logo.dart';
 import '../../widgets/makko_search_delegate.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/workspace_pulse_bar.dart';
+import '../github/github_contribution_graph.dart';
 import 'activity_heatmap.dart';
+import 'global_create_issue_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -84,6 +86,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(width: 4),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => GlobalCreateIssueSheet.show(context),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Capture'),
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 3,
+      ),
       body: statsAsync.when(
         skipLoadingOnRefresh: false,
         loading: () => const _DashboardSkeleton(),
@@ -94,7 +104,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         data: (stats) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(dashboardStatsProvider),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             children: [
               Text(
                 'Dashboard',
@@ -120,6 +130,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(height: 22),
               if (stats.projectCount == 0) ...[
                 const _EmptyWorkspaceCard(),
+                const SizedBox(height: 22),
+                const GithubContributionGraph(),
               ] else ...[
                 _BreakdownSection(stats: stats),
                 if (stats.projects.isNotEmpty) ...[
@@ -128,6 +140,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
                 const SizedBox(height: 22),
                 ActivityHeatmap(stats: stats),
+                const SizedBox(height: 22),
+                const GithubContributionGraph(),
               ],
               const SizedBox(height: 22),
               _QuickActions(

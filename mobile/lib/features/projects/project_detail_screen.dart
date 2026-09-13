@@ -180,6 +180,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                     ),
                     onDelete: _confirmDeleteIssue,
                     onStatusChange: _setStatus,
+                    onPriorityChange: _setPriority,
                   ),
                   // Tab 2: GitHub
                   RefreshIndicator(
@@ -238,6 +239,44 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Unable to update issue status. Try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _setPriority(Issue issue, String priority) async {
+    if (_busy || issue.priority == priority) return;
+    HapticFeedback.lightImpact();
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(issuesProvider(widget.projectId).notifier)
+          .updateIssue(
+            issueId: issue.id,
+            title: issue.title,
+            description: issue.description,
+            type: issue.type,
+            priority: priority,
+            status: issue.status,
+            filters: _filters,
+          );
+      ref.invalidate(issueStatusCountsProvider(widget.projectId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Priority set to ${_priorityLabel(priority)}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to update issue priority. Try again.'),
           ),
         );
       }
@@ -462,6 +501,7 @@ class _IssuesTab extends StatelessWidget {
   final ValueChanged<Issue> onEdit;
   final ValueChanged<Issue> onDelete;
   final void Function(Issue, String) onStatusChange;
+  final void Function(Issue, String) onPriorityChange;
 
   const _IssuesTab({
     required this.projectId,
@@ -473,6 +513,7 @@ class _IssuesTab extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onStatusChange,
+    required this.onPriorityChange,
   });
 
   @override
@@ -528,12 +569,14 @@ class _IssuesTab extends StatelessWidget {
                           switchInCurve: Curves.easeOut,
                           switchOutCurve: Curves.easeIn,
                           child: _IssueCard(
-                            key: ValueKey('${issue.id}-${issue.status}-${issue.updatedAt}'),
+                            key: ValueKey('${issue.id}-${issue.status}-${issue.priority}-${issue.updatedAt}'),
                             issue: issue,
                             onEdit: () => onEdit(issue),
                             onDelete: () => onDelete(issue),
                             onStatusChange: (status) =>
                                 onStatusChange(issue, status),
+                            onPriorityChange: (priority) =>
+                                onPriorityChange(issue, priority),
                           ),
                         ),
                       );
@@ -799,6 +842,7 @@ class _IssueCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final ValueChanged<String> onStatusChange;
+  final ValueChanged<String> onPriorityChange;
 
   const _IssueCard({
     super.key,
@@ -806,6 +850,7 @@ class _IssueCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onStatusChange,
+    required this.onPriorityChange,
   });
 
   @override
@@ -821,15 +866,15 @@ class _IssueCard extends StatelessWidget {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: semantics.done,
+          color: const Color(0xFFF59E0B),
           borderRadius: BorderRadius.circular(MakkoShapes.radiusLg),
         ),
         child: const Row(
           children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
+            Icon(Icons.flag_rounded, color: Colors.white, size: 24),
             SizedBox(width: 8),
             Text(
-              'Mark done',
+              'Cycle priority',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -842,55 +887,42 @@ class _IssueCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: scheme.error,
+          color: semantics.done,
           borderRadius: BorderRadius.circular(MakkoShapes.radiusLg),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Text(
-              'Delete',
+              'Mark done',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
             SizedBox(width: 8),
-            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
+            Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
           ],
         ),
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          // Swipe right: Mark as done with confirmation
-          if (issue.status == 'done') return false;
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Mark as done?'),
-              content: Text('Mark “${issue.title}” as completed?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: semantics.done,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Mark done'),
-                ),
-              ],
-            ),
-          );
-          if (confirmed == true) {
-            onStatusChange('done');
-          }
+          // Left-to-Right swipe: Cycle priority (Low -> Med -> High -> Low)
+          HapticFeedback.lightImpact();
+          final nextPriority = switch (issue.priority) {
+            'low' => 'medium',
+            'medium' => 'high',
+            'high' => 'low',
+            _ => 'low',
+          };
+          onPriorityChange(nextPriority);
           return false;
         } else if (direction == DismissDirection.endToStart) {
-          // Swipe left: Delete with confirmation dialog
-          onDelete();
+          // Right-to-Left swipe: Mark as Done
+          HapticFeedback.lightImpact();
+          if (issue.status != 'done') {
+            onStatusChange('done');
+          }
           return false;
         }
         return false;
@@ -1035,6 +1067,12 @@ String _statusLabel(String status) => switch (status) {
       'in_progress' => 'In progress',
       'done' => 'Done',
       _ => 'To do',
+    };
+
+String _priorityLabel(String priority) => switch (priority) {
+      'high' => 'High',
+      'medium' => 'Medium',
+      _ => 'Low',
     };
 
 

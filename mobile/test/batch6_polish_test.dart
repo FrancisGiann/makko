@@ -426,7 +426,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(ActivityHeatmap), findsOneWidget);
-      expect(find.text('Activity'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ActivityHeatmap),
+          matching: find.text('Activity'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Last 30 days'), findsOneWidget);
     });
   });
