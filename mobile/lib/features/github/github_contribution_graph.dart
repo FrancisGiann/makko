@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../home_widgets/home_widget_manager.dart';
 
 class ContributionDay {
   final String date;
@@ -105,25 +106,30 @@ class GithubContributionGraph extends StatefulWidget {
     this.initialData,
   });
 
-  // Level purple colors exactly as specified
-  static const Color level0 = Color(0xFF161B22);
-  static const Color level1 = Color(0xFF392A57);
-  static const Color level2 = Color(0xFF5A3D8A);
-  static const Color level3 = Color(0xFF7D55C4);
-  static const Color level4 = Color(0xFFA475F9);
+  // Level colors using Makko theme (surfaceContainerHighest up to primary cyan)
+  static Color get level0 => AppTheme.darkTheme.colorScheme.surfaceContainerHighest;
+  static Color get level1 => AppTheme.darkTheme.colorScheme.primary.withValues(alpha: 0.3);
+  static Color get level2 => AppTheme.darkTheme.colorScheme.primary.withValues(alpha: 0.5);
+  static Color get level3 => AppTheme.darkTheme.colorScheme.primary.withValues(alpha: 0.8);
+  static Color get level4 => AppTheme.darkTheme.colorScheme.primary;
 
-  static const Color darkCardBackground = Color(0xFF0D1117);
-  static const Color cardBorderColor = Color(0xFF30363D);
-  static const Color purpleAccent = Color(0xFFA475F9);
-  static const Color textMuted = Color(0xFF8B949E);
+  static Color get darkCardBackground => AppTheme.darkTheme.colorScheme.surfaceContainerLow;
+  static Color get cardBorderColor => AppTheme.darkTheme.colorScheme.outlineVariant;
+  static Color get purpleAccent => AppTheme.darkTheme.colorScheme.primary;
+  static Color get textMuted => AppTheme.darkTheme.colorScheme.onSurfaceVariant;
 
-  static Color getLevelColor(int level) => switch (level) {
-        1 => level1,
-        2 => level2,
-        3 => level3,
-        4 => level4,
-        _ => level0,
-      };
+  static Color getLevelColor(int level, [BuildContext? context]) {
+    final scheme = context != null
+        ? Theme.of(context).colorScheme
+        : AppTheme.darkTheme.colorScheme;
+    return switch (level) {
+      1 => scheme.primary.withValues(alpha: 0.3),
+      2 => scheme.primary.withValues(alpha: 0.5),
+      3 => scheme.primary.withValues(alpha: 0.8),
+      4 => scheme.primary,
+      _ => scheme.surfaceContainerHighest,
+    };
+  }
 
   @override
   State<GithubContributionGraph> createState() =>
@@ -250,6 +256,7 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
           _fetching = false;
         });
       }
+      HomeWidgetManager.updateHeatmapWidget(username: user, data: parsed);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -261,29 +268,30 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
   }
 
   void _showChangeUsernameDialog() {
+    final scheme = Theme.of(context).colorScheme;
     final controller = TextEditingController(text: _username ?? '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: GithubContributionGraph.darkCardBackground,
+        backgroundColor: scheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(MakkoShapes.radiusLg),
-          side: const BorderSide(
-            color: GithubContributionGraph.cardBorderColor,
+          side: BorderSide(
+            color: scheme.outlineVariant,
           ),
         ),
-        title: const Text(
+        title: Text(
           'Change GitHub Username',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: scheme.onSurface),
+          decoration: InputDecoration(
             labelText: 'GitHub Username',
             hintText: 'e.g. FrancisGiann',
-            prefixIcon: Icon(Icons.alternate_email_rounded, color: GithubContributionGraph.purpleAccent),
+            prefixIcon: Icon(Icons.alternate_email_rounded, color: scheme.primary),
           ),
         ),
         actions: [
@@ -297,11 +305,12 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                 Navigator.of(ctx).pop();
                 _clearUsername();
               },
-              child: const Text('Disconnect', style: TextStyle(color: Colors.redAccent)),
+              child: Text('Disconnect', style: TextStyle(color: scheme.error)),
             ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: GithubContributionGraph.level3,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
             ),
             onPressed: () {
               final newName = controller.text.trim();
@@ -319,12 +328,13 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: GithubContributionGraph.darkCardBackground,
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(MakkoShapes.radiusXl),
         border: Border.all(
-          color: GithubContributionGraph.cardBorderColor,
+          color: scheme.outlineVariant,
           width: 1,
         ),
       ),
@@ -334,36 +344,36 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Header
-          _buildHeader(),
+          _buildHeader(scheme),
           const SizedBox(height: 16),
 
           // Content based on state
           if (_loadingPrefs)
-            const SizedBox(
+            SizedBox(
               height: 120,
               child: Center(
                 child: CircularProgressIndicator(
-                  color: GithubContributionGraph.purpleAccent,
+                  color: scheme.primary,
                 ),
               ),
             )
           else if (_username == null || _username!.isEmpty)
-            _buildUsernameInputView()
+            _buildUsernameInputView(scheme)
           else if (_fetching && _data == null)
-            const SizedBox(
+            SizedBox(
               height: 140,
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(
-                      color: GithubContributionGraph.purpleAccent,
+                      color: scheme.primary,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     Text(
                       'Fetching contribution activity…',
                       style: TextStyle(
-                        color: GithubContributionGraph.textMuted,
+                        color: scheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
@@ -372,27 +382,28 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
               ),
             )
           else if (_error != null && _data == null)
-            _buildErrorView()
+            _buildErrorView(scheme)
           else if (_data != null)
-            _buildGraphView(_data!),
+            _buildGraphView(scheme, _data!),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ColorScheme scheme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title "G I T H U B"
-            const Text(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title "G I T H U B"
+            Text(
               'G I T H U B',
               style: TextStyle(
-                color: GithubContributionGraph.purpleAccent,
+                color: scheme.primary,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2.2,
@@ -400,10 +411,10 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
             ),
             const SizedBox(height: 4),
             // Main title "Activity"
-            const Text(
+            Text(
               'Activity',
               style: TextStyle(
-                color: Colors.white,
+                color: scheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -414,12 +425,13 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
               _username != null && _username!.isNotEmpty
                   ? 'Live contribution graph from @$_username'
                   : 'Live contribution graph from GitHub',
-              style: const TextStyle(
-                color: GithubContributionGraph.textMuted,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
-          ],
+            ],
+          ),
         ),
         if (_username != null && _username!.isNotEmpty)
           Row(
@@ -428,26 +440,26 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
               IconButton(
                 tooltip: 'Refresh contributions',
                 icon: _fetching
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: GithubContributionGraph.purpleAccent,
+                          color: scheme.primary,
                         ),
                       )
-                    : const Icon(
+                    : Icon(
                         Icons.refresh_rounded,
-                        color: GithubContributionGraph.textMuted,
+                        color: scheme.onSurfaceVariant,
                         size: 20,
                       ),
                 onPressed: _fetching ? null : () => _fetchContributions(_username!),
               ),
               IconButton(
                 tooltip: 'Edit username',
-                icon: const Icon(
+                icon: Icon(
                   Icons.edit_outlined,
-                  color: GithubContributionGraph.textMuted,
+                  color: scheme.onSurfaceVariant,
                   size: 20,
                 ),
                 onPressed: _showChangeUsernameDialog,
@@ -458,14 +470,14 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
     );
   }
 
-  Widget _buildUsernameInputView() {
+  Widget _buildUsernameInputView(ColorScheme scheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Enter your GitHub username to load your activity calendar.',
           style: TextStyle(
-            color: GithubContributionGraph.textMuted,
+            color: scheme.onSurfaceVariant,
             fontSize: 13,
           ),
         ),
@@ -475,19 +487,19 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
             Expanded(
               child: TextField(
                 controller: _usernameController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: scheme.onSurface, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'e.g. FrancisGiann',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF484F58),
+                  hintStyle: TextStyle(
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
                     fontSize: 14,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.alternate_email_rounded,
-                    color: GithubContributionGraph.purpleAccent,
+                    color: scheme.primary,
                     size: 18,
                   ),
-                  fillColor: const Color(0xFF161B22),
+                  fillColor: scheme.surfaceContainer,
                   filled: true,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -495,20 +507,20 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(MakkoShapes.radius),
-                    borderSide: const BorderSide(
-                      color: GithubContributionGraph.cardBorderColor,
+                    borderSide: BorderSide(
+                      color: scheme.outlineVariant,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(MakkoShapes.radius),
-                    borderSide: const BorderSide(
-                      color: GithubContributionGraph.cardBorderColor,
+                    borderSide: BorderSide(
+                      color: scheme.outlineVariant,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(MakkoShapes.radius),
-                    borderSide: const BorderSide(
-                      color: GithubContributionGraph.purpleAccent,
+                    borderSide: BorderSide(
+                      color: scheme.primary,
                       width: 1.5,
                     ),
                   ),
@@ -520,8 +532,8 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
             FilledButton(
               style: FilledButton.styleFrom(
                 minimumSize: const Size(0, MakkoShapes.touchTarget),
-                backgroundColor: GithubContributionGraph.level3,
-                foregroundColor: Colors.white,
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(MakkoShapes.radius),
                 ),
@@ -536,29 +548,29 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
     );
   }
 
-  Widget _buildErrorView() {
+  Widget _buildErrorView(ColorScheme scheme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1427),
+        color: scheme.errorContainer.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(MakkoShapes.radius),
-        border: Border.all(color: const Color(0xFF4C2A57)),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
-                color: Color(0xFFE28585),
+                color: scheme.error,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _error ?? 'Unable to fetch GitHub contributions.',
-                  style: const TextStyle(color: Color(0xFFF0B2B2), fontSize: 13),
+                  style: TextStyle(color: scheme.onErrorContainer, fontSize: 13),
                 ),
               ),
             ],
@@ -569,8 +581,8 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, MakkoShapes.touchTarget),
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFF5A3D8A)),
+                  foregroundColor: scheme.onSurface,
+                  side: BorderSide(color: scheme.outline),
                 ),
                 onPressed: () => _fetchContributions(_username!),
                 child: const Text('Retry'),
@@ -578,9 +590,9 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
               const SizedBox(width: 8),
               TextButton(
                 onPressed: _showChangeUsernameDialog,
-                child: const Text(
+                child: Text(
                   'Change username',
-                  style: TextStyle(color: GithubContributionGraph.purpleAccent),
+                  style: TextStyle(color: scheme.primary),
                 ),
               ),
             ],
@@ -590,7 +602,7 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
     );
   }
 
-  Widget _buildGraphView(GithubContributionsData data) {
+  Widget _buildGraphView(ColorScheme scheme, GithubContributionsData data) {
     // 53 columns x 7 rows
     // Build 2D matrix: row (0=Sun..6=Sat) x col (0..52)
     final grid = List.generate(
@@ -647,13 +659,13 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildWeekdayLabel('', cellSize, cellMargin), // Sun
-                    _buildWeekdayLabel('Mon', cellSize, cellMargin), // Mon
-                    _buildWeekdayLabel('', cellSize, cellMargin), // Tue
-                    _buildWeekdayLabel('Wed', cellSize, cellMargin), // Wed
-                    _buildWeekdayLabel('', cellSize, cellMargin), // Thu
-                    _buildWeekdayLabel('Fri', cellSize, cellMargin), // Fri
-                    _buildWeekdayLabel('', cellSize, cellMargin), // Sat
+                    _buildWeekdayLabel(scheme, '', cellSize, cellMargin), // Sun
+                    _buildWeekdayLabel(scheme, 'Mon', cellSize, cellMargin), // Mon
+                    _buildWeekdayLabel(scheme, '', cellSize, cellMargin), // Tue
+                    _buildWeekdayLabel(scheme, 'Wed', cellSize, cellMargin), // Wed
+                    _buildWeekdayLabel(scheme, '', cellSize, cellMargin), // Thu
+                    _buildWeekdayLabel(scheme, 'Fri', cellSize, cellMargin), // Fri
+                    _buildWeekdayLabel(scheme, '', cellSize, cellMargin), // Sat
                   ],
                 ),
               ),
@@ -687,8 +699,8 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                           height: 18,
                           child: Text(
                             monthLabel,
-                            style: const TextStyle(
-                              color: GithubContributionGraph.textMuted,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                             ),
@@ -705,7 +717,7 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                           }
 
                           final color =
-                              GithubContributionGraph.getLevelColor(cell.level);
+                              GithubContributionGraph.getLevelColor(cell.level, context);
                           final tooltip = '${cell.date}: Level ${cell.level}';
 
                           return Tooltip(
@@ -720,7 +732,7 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                                   MakkoShapes.radiusXs,
                                 ),
                                 border: Border.all(
-                                  color: const Color(0xFF272A30),
+                                  color: scheme.outlineVariant.withValues(alpha: 0.3),
                                   width: 0.5,
                                 ),
                               ),
@@ -743,17 +755,17 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
           children: [
             Text(
               '${data.totalContributions} contributions in the last year',
-              style: const TextStyle(
-                color: GithubContributionGraph.textMuted,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 fontSize: 11,
               ),
             ),
             Row(
               children: [
-                const Text(
+                Text(
                   'Less',
                   style: TextStyle(
-                    color: GithubContributionGraph.textMuted,
+                    color: scheme.onSurfaceVariant,
                     fontSize: 10,
                   ),
                 ),
@@ -764,19 +776,19 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
                     height: 10,
                     margin: const EdgeInsets.symmetric(horizontal: 1.5),
                     decoration: BoxDecoration(
-                      color: GithubContributionGraph.getLevelColor(lvl),
+                      color: GithubContributionGraph.getLevelColor(lvl, context),
                       borderRadius: BorderRadius.circular(MakkoShapes.radiusXs),
                       border: Border.all(
-                        color: const Color(0xFF272A30),
+                        color: scheme.outlineVariant.withValues(alpha: 0.3),
                         width: 0.5,
                       ),
                     ),
                   ),
                 const SizedBox(width: 4),
-                const Text(
+                Text(
                   'More',
                   style: TextStyle(
-                    color: GithubContributionGraph.textMuted,
+                    color: scheme.onSurfaceVariant,
                     fontSize: 10,
                   ),
                 ),
@@ -788,15 +800,15 @@ class _GithubContributionGraphState extends State<GithubContributionGraph> {
     );
   }
 
-  Widget _buildWeekdayLabel(String text, double size, double margin) {
+  Widget _buildWeekdayLabel(ColorScheme scheme, String text, double size, double margin) {
     return SizedBox(
       height: size + margin * 2,
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           text,
-          style: const TextStyle(
-            color: GithubContributionGraph.textMuted,
+          style: TextStyle(
+            color: scheme.onSurfaceVariant,
             fontSize: 9,
             fontWeight: FontWeight.w500,
           ),

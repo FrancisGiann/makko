@@ -379,7 +379,7 @@ void main() {
     });
 
     testWidgets(
-      'renders GitHub Contribution Graph with purple levels and subtitle when username and data are provided',
+      'renders GitHub Contribution Graph with cyan levels and subtitle when username and data are provided',
       (tester) async {
         SharedPreferences.setMockInitialValues({'github_username': 'FrancisGiann'});
 
@@ -436,12 +436,27 @@ void main() {
         expect(find.text('Wed'), findsOneWidget);
         expect(find.text('Fri'), findsOneWidget);
 
-        // 4. Verify Purple color levels constants
-        expect(GithubContributionGraph.level0, const Color(0xFF161B22));
-        expect(GithubContributionGraph.level1, const Color(0xFF392A57));
-        expect(GithubContributionGraph.level2, const Color(0xFF5A3D8A));
-        expect(GithubContributionGraph.level3, const Color(0xFF7D55C4));
-        expect(GithubContributionGraph.level4, const Color(0xFFA475F9));
+        // 4. Verify Theme color levels constants
+        expect(
+          GithubContributionGraph.level0,
+          AppTheme.darkTheme.colorScheme.surfaceContainerHighest,
+        );
+        expect(
+          GithubContributionGraph.level1,
+          AppTheme.darkTheme.colorScheme.primary.withValues(alpha: 0.3),
+        );
+        expect(
+          GithubContributionGraph.level2,
+          AppTheme.darkTheme.colorScheme.primary.withValues(alpha: 0.5),
+        );
+        expect(
+          GithubContributionGraph.level3,
+          AppTheme.darkTheme.colorScheme.primary.withValues(alpha: 0.8),
+        );
+        expect(
+          GithubContributionGraph.level4,
+          AppTheme.darkTheme.colorScheme.primary,
+        );
       },
     );
   });

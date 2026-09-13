@@ -417,7 +417,7 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.darkTheme,
-            home: const DashboardScreen(),
+            home: Scaffold(body: ActivityHeatmap(stats: stats)),
           ),
         ),
       );

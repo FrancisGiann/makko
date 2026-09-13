@@ -14,6 +14,7 @@ import '../../widgets/makko_search_delegate.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/workspace_pulse_bar.dart';
 import '../github/github_contribution_graph.dart';
+import '../home_widgets/home_widget_manager.dart';
 import 'global_create_issue_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,39 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    HomeWidgetManager.initialize(
+      onQuickCapture: () {
+        if (mounted) {
+          GlobalCreateIssueSheet.show(context);
+        }
+      },
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    try {
+      final uri = GoRouterState.of(context).uri;
+      if (uri.queryParameters['capture'] == 'true') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            GlobalCreateIssueSheet.show(context);
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    HomeWidgetManager.dispose();
+    super.dispose();
+  }
+
   String get _displayName {
     try {
       final user = Supabase.instance.client.auth.currentUser;
@@ -64,6 +98,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(dashboardStatsProvider);
     final scheme = Theme.of(context).colorScheme;
+
+    ref.listen(dashboardStatsProvider, (_, next) {
+      if (next.hasValue && next.value != null) {
+        HomeWidgetManager.updateCompanionWidget(stats: next.value);
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(

@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-31T18:32:10.000Z",
+  "title": "Design System: Makko",
+  "extensions": {
+    "colorMeta": {
+      "makko-cyan": {
+        "role": "primary",
+        "displayName": "Makko Cyan",
+        "canonical": "#06b6d4",
+        "tonalRamp": ["#083344", "#164e63", "#155e75", "#0e7490", "#0891b2", "#06b6d4", "#67e8f9", "#cffafe"]
+      },
+      "cyan-action-light": {
+        "role": "primary",
+        "displayName": "Cyan Action Light",
+        "canonical": "#0891b2",
+        "tonalRamp": ["#083344", "#164e63", "#155e75", "#0e7490", "#0891b2", "#06b6d4", "#67e8f9", "#cffafe"]
+      },
+      "cyan-action-dark": {
+        "role": "primary",
+        "displayName": "Cyan Action Dark",
+        "canonical": "#22d3ee",
+        "tonalRamp": ["#164e63", "#155e75", "#0e7490", "#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#ecfeff"]
+      },
+      "cyan-deep": {
+        "role": "primary",
+        "displayName": "Cyan Deep",
+        "canonical": "#0e7490",
+        "tonalRamp": ["#083344", "#164e63", "#155e75", "#0e7490", "#0891b2", "#06b6d4", "#67e8f9", "#cffafe"]
+      },
+      "cyan-pale": {
+        "role": "primary",
+        "displayName": "Cyan Pale",
+        "canonical": "#a5f3fc",
+        "tonalRamp": ["#164e63", "#155e75", "#0e7490", "#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a5f3fc"]
+      },
+      "sky-bloom": {
+        "role": "tertiary",
+        "displayName": "Sky Bloom",
+        "canonical": "#0ea5e9",
+        "tonalRamp": ["#082f49", "#075985", "#0369a1", "#0284c7", "#0ea5e9", "#38bdf8", "#7dd3fc", "#bae6fd"]
+      },
+      "deep-harbor": {
+        "role": "neutral",
+        "displayName": "Deep Harbor",
+        "canonical": "#070d18",
+        "tonalRamp": ["#020617", "#070d18", "#0c1527", "#101c33", "#152441", "#334155", "#64748b", "#cbd5e1"]
+      },
+      "harbor-surface": {
+        "role": "neutral",
+        "displayName": "Harbor Surface",
+        "canonical": "#0c1527",
+        "tonalRamp": ["#020617", "#070d18", "#0c1527", "#101c33", "#152441", "#334155", "#64748b", "#cbd5e1"]
+      },
+      "harbor-elevated": {
+        "role": "neutral",
+        "displayName": "Harbor Elevated",
+        "canonical": "#101c33",
+        "tonalRamp": ["#020617", "#070d18", "#0c1527", "#101c33", "#152441", "#334155", "#64748b", "#cbd5e1"]
+      },
+      "harbor-inset": {
+        "role": "neutral",
+        "displayName": "Harbor Inset",
+        "canonical": "#080f1d",
+        "tonalRamp": ["#020617", "#080f1d", "#0c1527", "#101c33", "#152441", "#334155", "#64748b", "#cbd5e1"]
+      },
+      "light-canvas": {
+        "role": "neutral",
+        "displayName": "Light Canvas",
+        "canonical": "#f4f7fb",
+        "tonalRamp": ["#111827", "#1f2937", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#e5e7eb", "#f4f7fb"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9", "#ffffff"]
+      },
+      "neutral-50": {
+        "role": "neutral",
+        "displayName": "Neutral 50",
+        "canonical": "#f8fafc",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#cbd5e1", "#f8fafc"]
+      },
+      "neutral-100": {
+        "role": "neutral",
+        "displayName": "Neutral 100",
+        "canonical": "#f1f5f9",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#cbd5e1", "#f1f5f9"]
+      },
+      "neutral-200": {
+        "role": "neutral",
+        "displayName": "Neutral 200",
+        "canonical": "#e2e8f0",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#cbd5e1", "#e2e8f0"]
+      },
+      "neutral-300": {
+        "role": "neutral",
+        "displayName": "Neutral 300",
+        "canonical": "#cbd5e1",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-400": {
+        "role": "neutral",
+        "displayName": "Neutral 400",
+        "canonical": "#94a3b8",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-500": {
+        "role": "neutral",
+        "displayName": "Neutral 500",
+        "canonical": "#64748b",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-600": {
+        "role": "neutral",
+        "displayName": "Neutral 600",
+        "canonical": "#475569",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-700": {
+        "role": "neutral",
+        "displayName": "Neutral 700",
+        "canonical": "#334155",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-800": {
+        "role": "neutral",
+        "displayName": "Neutral 800",
+        "canonical": "#1e293b",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-900": {
+        "role": "neutral",
+        "displayName": "Neutral 900",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "neutral-950": {
+        "role": "neutral",
+        "displayName": "Neutral 950",
+        "canonical": "#020617",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Success",
+        "canonical": "#10b981",
+        "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#a7f3d0"]
+      },
+      "success-bright": {
+        "role": "semantic",
+        "displayName": "Success Bright",
+        "canonical": "#34d399",
+        "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#a7f3d0"]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Warning",
+        "canonical": "#f59e0b",
+        "tonalRamp": ["#451a03", "#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fde68a"]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "Danger",
+        "canonical": "#f43f5e",
+        "tonalRamp": ["#4c0519", "#881337", "#9f1239", "#be123c", "#e11d48", "#f43f5e", "#fb7185", "#fecdd3"]
+      },
+      "danger-bright": {
+        "role": "semantic",
+        "displayName": "Danger Bright",
+        "canonical": "#fb7185",
+        "tonalRamp": ["#4c0519", "#881337", "#9f1239", "#be123c", "#e11d48", "#f43f5e", "#fb7185", "#fecdd3"]
+      },
+      "focus-sky": {
+        "role": "accent",
+        "displayName": "Focus Sky",
+        "canonical": "#38bdf8",
+        "tonalRamp": ["#082f49", "#075985", "#0369a1", "#0284c7", "#0ea5e9", "#38bdf8", "#7dd3fc", "#bae6fd"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Geist Display",
+        "purpose": "Landing-page statements and the strongest product promise."
+      },
+      "headline": {
+        "displayName": "Geist Headline",
+        "purpose": "Page-level workspace headings."
+      },
+      "title": {
+        "displayName": "Geist Title",
+        "purpose": "Section and card headings."
+      },
+      "body": {
+        "displayName": "Geist Body",
+        "purpose": "Descriptions, metadata, forms, and operational detail."
+      },
+      "label": {
+        "displayName": "Geist Label",
+        "purpose": "Controls, tags, statuses, and compact metadata."
+      }
+    },
+    "shadows": [
+      {
+        "name": "resting-2xs",
+        "value": "0 1px rgb(0 0 0 / 0.05)",
+        "purpose": "Small controls, tags, and compact account surfaces."
+      },
+      {
+        "name": "resting-xs",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Default cards, metric strips, and light containers."
+      },
+      {
+        "name": "support-sm",
+        "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        "purpose": "Empty-state icons and small raised wells."
+      },
+      {
+        "name": "raised-md",
+        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        "purpose": "Speech bubbles and active controls."
+      },
+      {
+        "name": "raised-lg",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Companion and prominent light surfaces."
+      },
+      {
+        "name": "raised-xl",
+        "value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+        "purpose": "Auth and prominent raised surfaces."
+      },
+      {
+        "name": "raised-2xl",
+        "value": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+        "purpose": "Deep dark raised surfaces and configuration panels."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fade-up",
+        "value": "500ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Gentle page and card entrance."
+      },
+      {
+        "name": "slide-in-right",
+        "value": "500ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Companion speech-bubble entrance."
+      },
+      {
+        "name": "interaction",
+        "value": "150ms ease",
+        "purpose": "Button, tab, border, and color state changes."
+      },
+      {
+        "name": "pet-float",
+        "value": "4.5s ease-in-out infinite",
+        "purpose": "Subtle shark companion float."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.8s ease-in-out infinite",
+        "purpose": "Loading skeleton highlight."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Disables entrance, companion, pulse, and shimmer animations."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Filled cyan action for creating, saving, or moving forward on light surfaces.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Create project</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #0891b2; color: #ffffff; padding: 10px 20px; border: 1px solid transparent; border-radius: 16px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 20px; font-weight: 500; box-shadow: 0 4px 6px -1px rgb(8 145 178 / 0.2), 0 2px 4px -2px rgb(8 145 178 / 0.2); transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease; } .ds-btn-primary:hover { background: #0e7490; transform: scale(1.02); } .ds-btn-primary:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { cursor: not-allowed; opacity: 0.5; }"
+    },
+    {
+      "name": "Dark Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary-dark",
+      "description": "Bright cyan action with Deep Harbor copy for dark mode.",
+      "html": "<button class=\"ds-btn-primary-dark\" type=\"button\">Save changes</button>",
+      "css": ".ds-btn-primary-dark { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #22d3ee; color: #020617; padding: 10px 20px; border: 1px solid transparent; border-radius: 16px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 20px; font-weight: 500; box-shadow: 0 4px 6px -1px rgb(34 211 238 / 0.2), 0 2px 4px -2px rgb(34 211 238 / 0.2); transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease; } .ds-btn-primary-dark:hover { background: #67e8f9; transform: scale(1.02); } .ds-btn-primary-dark:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; } .ds-btn-primary-dark:active { transform: scale(0.98); } .ds-btn-primary-dark:disabled { cursor: not-allowed; opacity: 0.5; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet bordered action for opening, canceling, or secondary navigation.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Open project</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; background: rgb(255 255 255 / 0.9); color: #334155; padding: 8px 16px; border: 1px solid rgb(226 232 240 / 0.8); border-radius: 16px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 20px; font-weight: 500; box-shadow: 0 1px rgb(0 0 0 / 0.05); transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease; } .ds-btn-secondary:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; } .ds-btn-secondary:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; } .ds-btn-secondary:active { background: #f1f5f9; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Full-width rounded field for authentication, project context, and GitHub setup.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Project name</span><input class=\"ds-input-text\" type=\"text\" placeholder=\"What are you building?\" /></label>",
+      "css": ".ds-field { display: block; color: #1e293b; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; } .ds-field-label { display: block; margin-bottom: 8px; color: #1e293b; font-size: 14px; line-height: 20px; font-weight: 500; } .ds-input-text { display: block; width: 100%; background: rgb(255 255 255 / 0.9); color: #0f172a; padding: 12px 16px; border: 1px solid rgb(203 213 225 / 0.8); border-radius: 16px; font: 400 14px/21px 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 1px rgb(0 0 0 / 0.05); outline: none; transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease; } .ds-input-text::placeholder { color: #94a3b8; } .ds-input-text:hover { border-color: rgb(148 163 184 / 0.8); } .ds-input-text:focus-visible { border-color: #0891b2; box-shadow: 0 0 0 3px rgb(8 145 178 / 0.2); outline: 2px solid #38bdf8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Workspace Navigation",
+      "kind": "nav",
+      "refersTo": "nav-workspace",
+      "description": "Compact pill navigation for switching between Projects and Dashboard.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Workspace navigation\"><a class=\"ds-nav-tab-active\" href=\"#projects\">Projects</a><a class=\"ds-nav-tab\" href=\"#dashboard\">Dashboard</a></nav>",
+      "css": ".ds-nav { display: inline-flex; align-items: center; gap: 6px; background: rgb(241 245 249 / 0.8); padding: 4px; border-radius: 16px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; } .ds-nav-tab, .ds-nav-tab-active { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 12px; font-size: 14px; line-height: 20px; font-weight: 500; text-decoration: none; transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease; } .ds-nav-tab { color: #475569; } .ds-nav-tab:hover { background: rgb(226 232 240 / 0.6); color: #0f172a; } .ds-nav-tab:focus-visible, .ds-nav-tab-active:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; } .ds-nav-tab-active { background: #ffffff; color: #155e75; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 0 0 1px rgb(0 0 0 / 0.05); } .ds-nav-tab-active:hover { background: #f8fafc; color: #0e7490; }"
+    },
+    {
+      "name": "Tag Chip",
+      "kind": "chip",
+      "refersTo": "chip-tag",
+      "description": "Quiet pill metadata for project tags and compact issue context.",
+      "html": "<span class=\"ds-chip\">web</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; background: rgb(241 245 249 / 0.8); color: #475569; padding: 2px 10px; border: 1px solid rgb(226 232 240 / 0.7); border-radius: 9999px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; line-height: 16px; font-weight: 500; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "Rounded tonal container for projects, metrics, forms, and activity groups.",
+      "html": "<article class=\"ds-card\"><h3>Project workload</h3><p>Keep the next step in sight.</p></article>",
+      "css": ".ds-card { background: rgb(255 255 255 / 0.8); color: #0f172a; padding: 24px; border: 1px solid rgb(226 232 240 / 0.8); border-radius: 24px; font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease; } .ds-card:hover { border-color: #cbd5e1; background: #ffffff; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); } .ds-card h3 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; } .ds-card p { margin: 8px 0 0; color: #475569; font-size: 14px; line-height: 24px; }"
+    },
+    {
+      "name": "Makko Companion",
+      "kind": "custom",
+      "refersTo": "companion-bubble",
+      "description": "Friendly shark companion with a concise workload message and mood signal.",
+      "html": "<section class=\"ds-companion\" aria-label=\"Makko Companion\"><div class=\"ds-companion-avatar\" aria-hidden=\"true\">🦈</div><div class=\"ds-companion-bubble\"><strong>Good afternoon, Builder!</strong><p>Your next step is in sight.</p></div></section>",
+      "css": ".ds-companion { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 16px; background: linear-gradient(135deg, rgb(255 255 255 / 0.95), rgb(236 254 255 / 0.3), rgb(240 249 255 / 0.5)); padding: 18px; border: 1px solid rgb(6 182 212 / 0.2); border-radius: 24px; box-shadow: 0 10px 15px -3px rgb(6 182 212 / 0.05), 0 4px 6px -4px rgb(6 182 212 / 0.05); transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease; } .ds-companion-avatar { display: grid; width: 80px; height: 80px; place-items: center; border-radius: 24px; background: linear-gradient(135deg, #22d3ee, #06b6d4, #0284c7); color: #ffffff; font-size: 32px; } .ds-companion-bubble { position: relative; background: rgb(255 255 255 / 0.85); color: #0f172a; padding: 18px; border: 1px solid rgb(255 255 255 / 0.7); border-radius: 16px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); } .ds-companion-bubble strong { font-size: 18px; line-height: 28px; font-weight: 600; } .ds-companion-bubble p { margin: 8px 0 0; color: #1e293b; font-size: 14px; line-height: 24px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Makko Tideboard",
+    "overview": "Makko is a personal command center for independent developers. Its visual language keeps the work legible and close at hand: calm surfaces, crisp Geist typography, cyan signals, and a small shark companion that gives the product a human pulse without becoming the task itself.\n\nThe voice is Quiet confidence: brief, calm, and low-distraction. Light mode sits on a cool canvas; dark mode moves into Deep Harbor with layered blue-black surfaces. Translucent headers, restrained ambient gradients, tactile controls, and clear state colors provide warmth while preserving useful information density.\n\nThe system avoids generic admin-dashboard and Jira-clone styling, loud gradients, and excessive effects. Cyan is the product signal, not wallpaper; the shark/ocean identity stays concise and purposeful.",
+    "keyCharacteristics": [
+      "Calm, private workspace language for solo builders.",
+      "Makko Cyan signals action, focus, and active work.",
+      "Deep Harbor dark mode with tonal surface layers.",
+      "Tactile, friendly controls with generous curved corners.",
+      "Dense but readable status, project, issue, and activity groupings."
+    ],
+    "rules": [
+      {
+        "name": "The One Current Rule",
+        "body": "Use cyan for action, focus, active work, and product identity; reserve emerald, amber, and rose for their semantic statuses.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Hierarchy Rule",
+        "body": "Let weight and size establish hierarchy; do not add decorative all-caps labels or extra display faces to make routine work feel louder.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal Layer Rule",
+        "body": "Establish depth with the surface step and border first; use a shadow to clarify a raised or interactive state, never as the primary decoration.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Geist with the documented system fallbacks and let weight/size carry hierarchy.",
+      "Do keep light mode on Light Canvas and dark mode on Deep Harbor with distinct tonal surfaces.",
+      "Do use Makko Cyan for actions, focus, active work, and product identity; use emerald, amber, and rose semantically.",
+      "Do preserve visible keyboard focus with a 2px Focus Sky outline and 2px offset.",
+      "Do keep cards at 3xl and controls at 2xl unless a compact heatmap cell or pill specifically calls for another documented radius.",
+      "Do honor reduced motion: fade/slide, pet float, pulse, and shimmer animations all stop under `prefers-reduced-motion: reduce`.",
+      "Do keep the shark identity subtle and let project, issue, and activity information lead the user's next action."
+    ],
+    "donts": [
+      "Don't drift toward a generic admin dashboard or Jira-clone visual language.",
+      "Don't turn cyan or the ocean motif into loud gradients, wallpaper, or excessive decoration.",
+      "Don't use extra display faces, decorative all-caps labels, or unnecessary visual effects that compete with operational copy.",
+      "Don't flatten dark mode into a quick inversion; keep Deep Harbor's layered surfaces and white-alpha borders.",
+      "Don't use shadows as the only depth cue when a tonal layer and border can establish the surface relationship.",
+      "Don't make status colors decorative: reserve rose, amber, and emerald for their established meanings."
+    ]
+  }
+}

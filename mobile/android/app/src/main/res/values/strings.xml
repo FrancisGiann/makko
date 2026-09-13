@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Makko</string>
+    <string name="widget_quick_capture_name">Makko Quick Capture</string>
+    <string name="widget_quick_capture_description">Quickly capture an issue or idea in Makko</string>
+    <string name="widget_companion_name">Makko Companion</string>
+    <string name="widget_companion_description">View your Makko companion on your home screen</string>
+    <string name="widget_heatmap_name">Makko GitHub Heatmap</string>
+    <string name="widget_heatmap_description">View your GitHub activity heatmap on your home screen</string>
+</resources>

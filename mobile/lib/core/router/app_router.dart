@@ -48,6 +48,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const LoginScreen())),
       GoRoute(path: '/signup', pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const SignupScreen())),
       GoRoute(path: '/account', pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const AccountScreen())),
+      GoRoute(path: '/capture', redirect: (_, state) => '/dashboard'),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) =>
             MakkoNavigationShell(navigationShell: navigationShell),
