@@ -87,7 +87,8 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: const Text('Project Details'),
+          centerTitle: true,
           actions: [
             IconButton(
               tooltip: 'Edit project',
@@ -121,7 +122,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
           children: [
             // Pinned Compact Project Metadata Card
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               child: _CompactProjectMetaCard(
                 project: item,
                 counts: countsAsync.valueOrNull ??
@@ -338,46 +339,55 @@ class _CompactProjectMetaCard extends StatelessWidget {
     final hasTags = project.tags.isNotEmpty;
 
     return MakkoCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      borderRadius: MakkoShapes.radiusLg,
+      padding: const EdgeInsets.all(20),
+      borderRadius: MakkoShapes.radiusXl,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            project.name,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+              letterSpacing: -0.5,
+            ),
+          ),
           if (hasDescription) ...[
+            const SizedBox(height: 8),
             Text(
               project.description!,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 6),
           ],
           if (hasTags) ...[
+            const SizedBox(height: 16),
             Wrap(
-              spacing: 6,
-              runSpacing: 4,
+              spacing: 8,
+              runSpacing: 8,
               children: project.tags.map((tag) => TagChip(tag: tag)).toList(),
             ),
-            const SizedBox(height: 8),
           ],
+          const SizedBox(height: 20),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
           // Status summary counts with colored dots
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _StatusDotCount(
                 label: 'To do',
                 count: counts['todo'] ?? 0,
                 color: semantics.todo,
               ),
-              const SizedBox(width: 14),
               _StatusDotCount(
                 label: 'In progress',
                 count: counts['in_progress'] ?? 0,
                 color: scheme.primary,
               ),
-              const SizedBox(width: 14),
               _StatusDotCount(
                 label: 'Done',
                 count: counts['done'] ?? 0,
