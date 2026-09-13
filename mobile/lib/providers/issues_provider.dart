@@ -222,3 +222,11 @@ final issueProvider = FutureProvider.autoDispose.family<Issue?, IssueLookup>((
       .read(issueServiceProvider)
       .getIssue(lookup.projectId, lookup.issueId);
 });
+
+final searchIssuesProvider =
+    FutureProvider.autoDispose.family<List<Issue>, String>((ref, query) async {
+  final cleanQuery = query.trim();
+  if (cleanQuery.isEmpty) return const [];
+  if (ref.watch(authUserIdProvider) == null) return const [];
+  return ref.read(issueServiceProvider).searchIssues(cleanQuery);
+});

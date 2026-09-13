@@ -12,6 +12,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/makko_logo.dart';
 import '../../widgets/makko_card.dart';
+import '../../widgets/makko_search_delegate.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/tag_chip.dart';
 
@@ -27,6 +28,14 @@ class ProjectsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const MakkoLogo(compact: true),
         actions: [
+          IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => showSearch(
+              context: context,
+              delegate: MakkoSearchDelegate(ref),
+            ),
+          ),
           IconButton(
             tooltip: 'Account and settings',
             onPressed: () => context.push('/account'),

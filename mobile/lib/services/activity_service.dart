@@ -76,6 +76,24 @@ class ActivityService {
       hasMore: rows.length > pageSize,
     );
   }
+
+  Future<List<ActivityLog>> getRecentActivities({int lookbackDays = 30}) async {
+    try {
+      final cutoff = DateTime.now()
+          .subtract(Duration(days: lookbackDays))
+          .toIso8601String();
+      final response = await supabase
+          .from('activity_log')
+          .select('id,project_id,issue_id,action,description,created_at')
+          .gte('created_at', cutoff)
+          .order('created_at', ascending: false);
+      return (response as List)
+          .map((json) => ActivityLog.fromJson(json))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }
 
 enum ActivityScope { last30Days, allTime }

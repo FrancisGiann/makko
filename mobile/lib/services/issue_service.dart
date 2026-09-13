@@ -337,4 +337,22 @@ class IssueService {
         .eq('id', issue)
         .eq('project_id', project);
   }
+
+  Future<List<Issue>> searchIssues(String query, {int limit = 25}) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return [];
+    try {
+      final response = await supabase
+          .from('issues')
+          .select(_issueColumns)
+          .ilike('title', '%$cleanQuery%')
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return (response as List)
+          .map((json) => Issue.fromJson(json))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

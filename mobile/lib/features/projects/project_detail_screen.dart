@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -357,11 +358,14 @@ class _CompactProjectMetaCard extends StatelessWidget {
           ),
           if (hasDescription) ...[
             const SizedBox(height: 8),
-            Text(
-              project.description!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                height: 1.4,
+            MarkdownBody(
+              data: project.description!,
+              styleSheet:
+                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                p: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
               ),
             ),
           ],
@@ -967,13 +971,18 @@ class _IssueCard extends StatelessWidget {
                 if (issue.description?.isNotEmpty == true)
                   Padding(
                     padding: const EdgeInsets.only(left: 31, top: 4),
-                    child: Text(
-                      issue.description!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                    child: MarkdownBody(
+                      data: issue.description!,
+                      styleSheet:
+                          MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                        p: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                        code: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              backgroundColor: scheme.surfaceContainerHighest,
+                              fontFamily: 'monospace',
+                            ),
+                      ),
                     ),
                   ),
                 const SizedBox(height: 10),

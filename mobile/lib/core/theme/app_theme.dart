@@ -93,6 +93,7 @@ extension MakkoThemeContext on BuildContext {
 }
 
 class MakkoShapes {
+  static const radiusXs = 2.0;
   static const radiusSm = 4.0;
   static const radius = 12.0;
   static const radiusMd = 14.0;

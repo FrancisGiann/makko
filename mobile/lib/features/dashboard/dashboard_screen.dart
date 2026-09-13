@@ -10,8 +10,10 @@ import '../../widgets/app_section_header.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/makko_card.dart';
 import '../../widgets/makko_logo.dart';
+import '../../widgets/makko_search_delegate.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/workspace_pulse_bar.dart';
+import 'activity_heatmap.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -67,6 +69,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         title: const MakkoLogo(compact: true),
         actions: [
           IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => showSearch(
+              context: context,
+              delegate: MakkoSearchDelegate(ref),
+            ),
+          ),
+          IconButton(
             tooltip: 'Account and settings',
             onPressed: () => context.push('/account'),
             icon: const Icon(Icons.account_circle_outlined),
@@ -116,6 +126,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 22),
                   _WorkloadCard(stats: stats),
                 ],
+                const SizedBox(height: 22),
+                ActivityHeatmap(stats: stats),
               ],
               const SizedBox(height: 22),
               _QuickActions(
