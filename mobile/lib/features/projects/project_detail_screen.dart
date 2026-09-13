@@ -120,43 +120,43 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
           icon: const Icon(Icons.add_rounded),
           label: const Text('New issue'),
         ),
-        body: Column(
-          children: [
-            // Pinned Compact Project Metadata Card
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: _CompactProjectMetaCard(
-                project: item,
-                counts: countsAsync.valueOrNull ??
-                    const {'todo': 0, 'in_progress': 0, 'done': 0},
-              ),
-            ),
-            // TabBar
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: scheme.outlineVariant),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: _CompactProjectMetaCard(
+                    project: item,
+                    counts: countsAsync.valueOrNull ??
+                        const {'todo': 0, 'in_progress': 0, 'done': 0},
+                  ),
                 ),
               ),
-              child: TabBar(
-                indicatorColor: scheme.primary,
-                indicatorWeight: 3,
-                labelColor: scheme.primary,
-                unselectedLabelColor: scheme.onSurfaceVariant,
-                labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _TabBarDelegate(
+                  TabBar(
+                    indicatorColor: scheme.primary,
+                    indicatorWeight: 3,
+                    labelColor: scheme.primary,
+                    unselectedLabelColor: scheme.onSurfaceVariant,
+                    labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    tabs: const [
+                      Tab(text: 'Issues'),
+                      Tab(text: 'GitHub'),
+                      Tab(text: 'Activity'),
+                    ],
+                  ),
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 ),
-                tabs: const [
-                  Tab(text: 'Issues'),
-                  Tab(text: 'GitHub'),
-                  Tab(text: 'Activity'),
-                ],
               ),
-            ),
-            // TabBarView content
-            Expanded(
-              child: TabBarView(
-                children: [
+            ];
+          },
+          body: TabBarView(
+            children: [
                   // Tab 1: Issues
                   _IssuesTab(
                     projectId: widget.projectId,
@@ -204,9 +204,7 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1021,3 +1019,35 @@ String _statusLabel(String status) => switch (status) {
       'done' => 'Done',
       _ => 'To do',
     };
+
+
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  final Color backgroundColor;
+
+  _TabBarDelegate(this.tabBar, {required this.backgroundColor});
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_TabBarDelegate oldDelegate) {
+    return tabBar != oldDelegate.tabBar ||
+        backgroundColor != oldDelegate.backgroundColor;
+  }
+}
