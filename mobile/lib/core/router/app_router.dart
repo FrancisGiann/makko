@@ -12,6 +12,8 @@ import '../../features/projects/create_project_sheet.dart';
 import '../../features/projects/project_detail_screen.dart';
 import '../../features/projects/projects_screen.dart';
 import '../../providers/auth_provider.dart';
+import 'transitions.dart';
+
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -43,9 +45,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
-      GoRoute(path: '/signup', builder: (_, _) => const SignupScreen()),
-      GoRoute(path: '/account', builder: (_, _) => const AccountScreen()),
+      GoRoute(path: '/login', pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const LoginScreen())),
+      GoRoute(path: '/signup', pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const SignupScreen())),
+      GoRoute(path: '/account', pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const AccountScreen())),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) =>
             MakkoNavigationShell(navigationShell: navigationShell),
@@ -54,7 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/dashboard',
-                builder: (_, _) => const DashboardScreen(),
+                pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const DashboardScreen()),
               ),
             ],
           ),
@@ -62,40 +64,40 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/projects',
-                builder: (_, _) => const ProjectsScreen(),
+                pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const ProjectsScreen()),
                 routes: [
                   GoRoute(
                     path: 'new',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (_, _) => const CreateProjectSheet(),
+                    pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: const CreateProjectSheet()),
                   ),
                   GoRoute(
                     path: ':id',
-                    builder: (_, state) => ProjectDetailScreen(
+                    pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: ProjectDetailScreen(
                       projectId: state.pathParameters['id']!,
-                    ),
+                    )),
                     routes: [
                       GoRoute(
                         path: 'edit',
                         parentNavigatorKey: _rootNavigatorKey,
-                        builder: (_, state) => CreateProjectSheet(
+                        pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: CreateProjectSheet(
                           projectId: state.pathParameters['id']!,
-                        ),
+                        )),
                       ),
                       GoRoute(
                         path: 'issues/new',
                         parentNavigatorKey: _rootNavigatorKey,
-                        builder: (_, state) => CreateIssueSheet(
+                        pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: CreateIssueSheet(
                           projectId: state.pathParameters['id']!,
-                        ),
+                        )),
                       ),
                       GoRoute(
                         path: 'issues/:issueId/edit',
                         parentNavigatorKey: _rootNavigatorKey,
-                        builder: (_, state) => CreateIssueSheet(
+                        pageBuilder: (_, state) => MakkoTransitionPage(key: state.pageKey, child: CreateIssueSheet(
                           projectId: state.pathParameters['id']!,
                           issueId: state.pathParameters['issueId']!,
-                        ),
+                        )),
                       ),
                     ],
                   ),
