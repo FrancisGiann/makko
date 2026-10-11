@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
+import 'auth_error_message.dart';
 import '../../services/auth_service.dart';
 import '../../services/validation.dart';
 import '../../widgets/makko_logo.dart';
@@ -33,7 +34,11 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
     } catch (error) {
-      if (mounted) setState(() => _error = _authMessage(error));
+      if (mounted) {
+        setState(
+          () => _error = authErrorMessage(error, action: AuthAction.signIn),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -216,11 +221,4 @@ class _ButtonProgress extends StatelessWidget {
       color: Theme.of(context).colorScheme.onPrimary,
     ),
   );
-}
-
-String _authMessage(Object error) {
-  final message = error.toString().replaceFirst('AuthException: ', '').trim();
-  if (message.isEmpty || message.contains('Exception'))
-    return 'Unable to sign in. Check your details and try again.';
-  return message;
 }

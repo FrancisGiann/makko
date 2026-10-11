@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,9 +12,10 @@ import '../../widgets/app_section_header.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/makko_card.dart';
 import '../../widgets/makko_logo.dart';
+import '../../widgets/makko_mascot.dart';
 import '../../widgets/makko_search_delegate.dart';
+import '../../widgets/refresh_error_banner.dart';
 import '../../widgets/shimmer_loading.dart';
-import '../../widgets/workspace_pulse_bar.dart';
 import '../github/github_contribution_graph.dart';
 import '../home_widgets/home_widget_manager.dart';
 import 'global_create_issue_sheet.dart';
@@ -25,37 +28,63 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final _mascotKey = GlobalKey();
+  final _viewportKey = GlobalKey();
+  bool _mascotVisible = false;
+  bool _visibilityCheckScheduled = false;
+
+  Future<void> _refreshDashboard() async {
+    try {
+      await ref.refresh(dashboardStatsProvider.future).then<void>((_) {});
+    } catch (_) {
+      // The retained dashboard shows an inline recovery message below.
+    }
+  }
+
+  void _scheduleMascotVisibilityCheck() {
+    if (_visibilityCheckScheduled) return;
+    _visibilityCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _visibilityCheckScheduled = false;
+      if (!mounted) return;
+
+      final mascotObject = _mascotKey.currentContext?.findRenderObject();
+      final viewportObject = _viewportKey.currentContext?.findRenderObject();
+      if (mascotObject is! RenderBox ||
+          viewportObject is! RenderBox ||
+          !mascotObject.hasSize ||
+          !viewportObject.hasSize) {
+        return;
+      }
+
+      final mascotRect =
+          mascotObject.localToGlobal(Offset.zero) & mascotObject.size;
+      final viewportRect =
+          viewportObject.localToGlobal(Offset.zero) & viewportObject.size;
+      final visiblePart = mascotRect.intersect(viewportRect);
+      final area = mascotRect.width * mascotRect.height;
+      final visible =
+          area > 0 &&
+          visiblePart.width > 0 &&
+          visiblePart.height > 0 &&
+          (visiblePart.width * visiblePart.height / area) >= 0.2;
+      if (_mascotVisible != visible) {
+        setState(() => _mascotVisible = visible);
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    HomeWidgetManager.initialize(
-      onQuickCapture: () {
-        if (mounted) {
-          GlobalCreateIssueSheet.show(context);
-        }
-      },
-    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    try {
-      final uri = GoRouterState.of(context).uri;
-      if (uri.queryParameters['capture'] == 'true') {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            GlobalCreateIssueSheet.show(context);
-          }
-        });
-      }
-    } catch (_) {}
-  }
-
-  @override
-  void dispose() {
-    HomeWidgetManager.dispose();
-    super.dispose();
+    MediaQuery.sizeOf(context);
+    MediaQuery.textScalerOf(context);
+    _scheduleMascotVisibilityCheck();
   }
 
   String get _displayName {
@@ -134,61 +163,75 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         elevation: 3,
       ),
       body: statsAsync.when(
-        skipLoadingOnRefresh: false,
+        skipLoadingOnRefresh: true,
+        skipError: true,
         loading: () => const _DashboardSkeleton(),
         error: (error, _) => MakkoErrorState(
           message: _friendlyDashboardError(error),
-          onRetry: () => ref.invalidate(dashboardStatsProvider),
+          onRetry: () => unawaited(_refreshDashboard()),
         ),
-        data: (stats) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(dashboardStatsProvider),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-            children: [
-              Text(
-                'Dashboard',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'A clear view of your current build queue.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _MakkoCompanion(
-                stats: stats,
-                displayName: _displayName,
-                greeting: _greeting,
-              ),
-              const SizedBox(height: 20),
-              const AppSectionHeader(title: 'Workspace at a glance'),
-              const SizedBox(height: 10),
-              _MetricStrip(stats: stats),
-              const SizedBox(height: 22),
-              if (stats.projectCount == 0) ...[
-                const _EmptyWorkspaceCard(),
-                const SizedBox(height: 22),
-                const GithubContributionGraph(),
-              ] else ...[
-                _BreakdownSection(stats: stats),
-                if (stats.projects.isNotEmpty) ...[
+        data: (stats) {
+          _scheduleMascotVisibilityCheck();
+          return RefreshIndicator(
+            onRefresh: _refreshDashboard,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.depth == 0 &&
+                    notification.metrics.axis == Axis.vertical) {
+                  _scheduleMascotVisibilityCheck();
+                }
+                return false;
+              },
+              child: ListView(
+                key: _viewportKey,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                children: [
+                  if (statsAsync.hasError)
+                    RefreshErrorBanner(
+                      message: 'Could not refresh dashboard data. Showing the last loaded view.',
+                      onRetry: _refreshDashboard,
+                    ),
+                  Text(
+                    'Dashboard',
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
+                  const SizedBox(height: 20),
+                  _MakkoCompanion(
+                    stats: stats,
+                    displayName: _displayName,
+                    greeting: _greeting,
+                    visible: _mascotVisible,
+                    mascotKey: _mascotKey,
+                  ),
+                  const SizedBox(height: 20),
+                  const AppSectionHeader(title: 'Workspace at a glance'),
+                  const SizedBox(height: 10),
+                  _MetricStrip(stats: stats),
                   const SizedBox(height: 22),
-                  _WorkloadCard(stats: stats),
-                ],
+                  if (stats.projectCount == 0) ...[
+                    const _EmptyWorkspaceCard(),
+                    const SizedBox(height: 22),
+                    const GithubContributionGraph(),
+                  ] else ...[
+                    _BreakdownSection(stats: stats),
+                    if (stats.projects.isNotEmpty) ...[
+                      const SizedBox(height: 22),
+                      _WorkloadCard(stats: stats),
+                    ],
 
-                const SizedBox(height: 22),
-                const GithubContributionGraph(),
-              ],
-              const SizedBox(height: 22),
-              _QuickActions(
-                onProjects: () => context.go('/projects'),
-                onNewProject: () => context.push('/projects/new'),
+                    const SizedBox(height: 22),
+                    const GithubContributionGraph(),
+                  ],
+                  const SizedBox(height: 22),
+                  _QuickActions(
+                    onProjects: () => context.go('/projects'),
+                    onNewProject: () => context.push('/projects/new'),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -198,248 +241,93 @@ class _MakkoCompanion extends StatefulWidget {
   final DashboardStats stats;
   final String displayName;
   final String greeting;
+  final bool visible;
+  final Key mascotKey;
 
   const _MakkoCompanion({
     required this.stats,
     required this.displayName,
     required this.greeting,
+    required this.visible,
+    required this.mascotKey,
   });
 
   @override
   State<_MakkoCompanion> createState() => _MakkoCompanionState();
 }
 
-class _MakkoCompanionState extends State<_MakkoCompanion>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _floatController;
-  late final Animation<double> _floatAnimation;
-
+class _MakkoCompanionState extends State<_MakkoCompanion> {
   @override
-  void initState() {
-    super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 4500),
-    );
-    _floatAnimation = Tween<double>(begin: 0.0, end: -4.0).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-    _floatController.repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _floatController.dispose();
-    super.dispose();
-  }
-
-  Widget _buildAvatar(BuildContext context) {
-    final disableAnimations =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  Widget build(BuildContext context) {
+    final stats = widget.stats;
     final scheme = Theme.of(context).colorScheme;
-    final semantics = context.makkoSemantics;
+    final String message;
 
-    final avatarCore = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: scheme.primaryContainer.withValues(alpha: 0.35),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: scheme.primary.withValues(alpha: 0.3),
-              width: 1.5,
-            ),
-          ),
-          padding: const EdgeInsets.all(10),
-          child: Image.asset(
-            'assets/makko-pet.png',
-            semanticLabel: 'Makko shark companion',
-            fit: BoxFit.contain,
-          ),
-        ),
-        Positioned(
-          right: 2,
-          bottom: 2,
-          child: Container(
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              color: semantics.done,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                width: 2.5,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-
-    if (disableAnimations) {
-      return avatarCore;
+    if (stats.projectCount == 0) {
+      message = 'Your workspace is ready for its first project.';
+    } else if (stats.totalIssues == 0) {
+      message = 'Your projects are set up. Add an internal task or bug when you’re ready.';
+    } else if (stats.openIssues == 0 && stats.completedIssues > 0) {
+      message = 'All internal issues are complete. Your workspace is clear.';
+    } else {
+      final itemWord = stats.openIssues == 1 ? 'open issue' : 'open issues';
+      final projectWord = stats.projectCount == 1 ? 'project' : 'projects';
+      message =
+          '${stats.openIssues} $itemWord across ${stats.projectCount} $projectWord.';
     }
-
-    return AnimatedBuilder(
-      animation: _floatAnimation,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(0, _floatAnimation.value),
-        child: child,
-      ),
-      child: avatarCore,
-    );
-  }
-
-  Widget _buildMoodPill(BuildContext context, String tag, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(MakkoShapes.radiusFull),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            tag,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpeechBubbleCard(
-    BuildContext context,
-    String moodTag,
-    Color moodColor,
-    String message,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
 
     return MakkoCard(
       borderRadius: MakkoShapes.radiusXl,
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text(
-                  '${widget.greeting}, ${widget.displayName}!',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.greeting,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: scheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.35,
+                          ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              _buildMoodPill(context, moodTag, moodColor),
+              const SizedBox(width: 4),
+              MakkoMascot(
+                key: widget.mascotKey,
+                visible: widget.visible,
+                width: 88,
+                height: 68,
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Text(
             message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 16),
-          WorkspacePulseBar(
-            completed: widget.stats.completedIssues,
-            total: widget.stats.totalIssues,
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: scheme.onSurfaceVariant, height: 1.4),
           ),
         ],
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final stats = widget.stats;
-    final semantics = context.makkoSemantics;
-    final scheme = Theme.of(context).colorScheme;
-
-    final int highPriority = stats.byPriority['high'] ?? 0;
-    final int inProgress = stats.byStatus['in_progress'] ?? 0;
-    final int completionRate = stats.totalIssues > 0
-        ? ((stats.completedIssues / stats.totalIssues) * 100).round()
-        : 0;
-
-    final String moodTag;
-    final Color moodColor;
-    final String message;
-
-    if (stats.projectCount == 0) {
-      moodTag = 'Ready to launch';
-      moodColor = scheme.primary;
-      message =
-          'Your workspace is ready. Create your first project and start tracking what matters.';
-    } else if (stats.totalIssues == 0) {
-      moodTag = 'Smooth sailing';
-      moodColor = scheme.primary;
-      message =
-          "Your projects are set up. What's on your mind? Add your first issue to get moving.";
-    } else if (stats.openIssues == 0 && stats.completedIssues > 0) {
-      moodTag = 'All clear!';
-      moodColor = semantics.done;
-      message =
-          'Every issue across your workspace is done. The ocean is clear.';
-    } else if (highPriority > 0) {
-      moodTag = 'High Alert';
-      moodColor = semantics.high;
-      final itemWord = highPriority == 1 ? 'item that needs' : 'items that need';
-      message =
-          'You have $highPriority urgent $itemWord attention. Current completion: $completionRate%.';
-    } else if (inProgress > 0) {
-      moodTag = 'In the zone';
-      moodColor = scheme.primary;
-      final itemWord = inProgress == 1 ? 'item' : 'items';
-      message =
-          '$inProgress $itemWord in motion right now. You\'re at $completionRate% overall — keep the momentum.';
-    } else {
-      moodTag = 'On patrol';
-      moodColor = semantics.todo;
-      final itemWord = stats.openIssues == 1 ? 'item' : 'items';
-      final projectWord = stats.projectCount == 1 ? 'project' : 'projects';
-      message =
-          'You have ${stats.openIssues} open $itemWord across ${stats.projectCount} $projectWord. $completionRate% complete overall.';
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildAvatar(context),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildSpeechBubbleCard(
-            context,
-            moodTag,
-            moodColor,
-            message,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -453,54 +341,41 @@ class _MetricStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final semantics = context.makkoSemantics;
-    final dividerColor = scheme.outlineVariant.withValues(alpha: 0.7);
 
     return MakkoCard(
-      padding: EdgeInsets.zero,
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _MetricCell(
-                  icon: Icons.folder_outlined,
-                  label: 'Projects',
-                  value: '${stats.projectCount}',
-                  valueColor: scheme.onSurface,
-                ),
-              ),
-              Container(width: 1, height: 74, color: dividerColor),
-              Expanded(
-                child: _MetricCell(
-                  icon: Icons.format_list_bulleted_rounded,
-                  label: 'All Issues',
-                  value: '${stats.totalIssues}',
-                  valueColor: scheme.onSurface,
-                ),
-              ),
-            ],
+          Expanded(
+            child: _MetricCell(
+              label: 'Projects',
+              value: '${stats.projectCount}',
+              valueColor: scheme.onSurface,
+            ),
           ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricCell(
-                  icon: Icons.radio_button_unchecked_rounded,
-                  label: 'Open',
-                  value: '${stats.openIssues}',
-                  valueColor: scheme.primary,
-                ),
-              ),
-              Container(width: 1, height: 74, color: dividerColor),
-              Expanded(
-                child: _MetricCell(
-                  icon: Icons.check_circle_outline_rounded,
-                  label: 'Completed',
-                  value: '${stats.completedIssues}',
-                  valueColor: semantics.done,
-                ),
-              ),
-            ],
+          _MetricDivider(color: scheme.outlineVariant),
+          Expanded(
+            child: _MetricCell(
+              label: 'Issues',
+              value: '${stats.totalIssues}',
+              valueColor: scheme.onSurface,
+            ),
+          ),
+          _MetricDivider(color: scheme.outlineVariant),
+          Expanded(
+            child: _MetricCell(
+              label: 'Open',
+              value: '${stats.openIssues}',
+              valueColor: scheme.primary,
+            ),
+          ),
+          _MetricDivider(color: scheme.outlineVariant),
+          Expanded(
+            child: _MetricCell(
+              label: 'Done',
+              value: '${stats.completedIssues}',
+              valueColor: semantics.done,
+            ),
           ),
         ],
       ),
@@ -508,14 +383,22 @@ class _MetricStrip extends StatelessWidget {
   }
 }
 
+class _MetricDivider extends StatelessWidget {
+  final Color color;
+
+  const _MetricDivider({required this.color});
+
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 42, color: color.withValues(alpha: 0.65));
+}
+
 class _MetricCell extends StatelessWidget {
-  final IconData icon;
   final String label;
   final String value;
   final Color valueColor;
 
   const _MetricCell({
-    required this.icon,
     required this.label,
     required this.value,
     required this.valueColor,
@@ -525,35 +408,28 @@ class _MetricCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 15, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
           Text(
             value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: valueColor,
               fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -586,11 +462,7 @@ class _BreakdownSection extends StatelessWidget {
         }
 
         return Column(
-          children: [
-            statusCard,
-            const SizedBox(height: 14),
-            priorityCard,
-          ],
+          children: [statusCard, const SizedBox(height: 14), priorityCard],
         );
       },
     );
@@ -620,9 +492,8 @@ class _StatusBreakdownCard extends StatelessWidget {
         children: [
           Text(
             'By Status',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           ...rows.asMap().entries.map((entry) {
@@ -669,9 +540,8 @@ class _PriorityBreakdownCard extends StatelessWidget {
         children: [
           Text(
             'By Priority',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           ...rows.asMap().entries.map((entry) {
@@ -731,9 +601,8 @@ class _BreakdownRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -748,6 +617,9 @@ class _BreakdownRow extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         _AnimatedProgressBar(
+          fillKey: ValueKey(
+            'dashboard-breakdown-fill-${label.toLowerCase().replaceAll(' ', '-')}',
+          ),
           fraction: fraction,
           color: color,
           backgroundColor: scheme.surfaceContainerHighest,
@@ -758,11 +630,13 @@ class _BreakdownRow extends StatelessWidget {
 }
 
 class _AnimatedProgressBar extends StatefulWidget {
+  final Key? fillKey;
   final double fraction;
   final Color color;
   final Color backgroundColor;
 
   const _AnimatedProgressBar({
+    this.fillKey,
     required this.fraction,
     required this.color,
     required this.backgroundColor,
@@ -776,6 +650,7 @@ class _AnimatedProgressBarState extends State<_AnimatedProgressBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _animation;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -784,18 +659,32 @@ class _AnimatedProgressBarState extends State<_AnimatedProgressBar>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-    _controller.forward();
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final media = MediaQuery.maybeOf(context);
+    _reduceMotion =
+        (media?.disableAnimations ?? false) ||
+        (media?.accessibleNavigation ?? false);
+    if (_reduceMotion) {
+      _controller.value = 1;
+    } else if (_controller.value == 0) {
+      _controller.forward();
+    }
   }
 
   @override
   void didUpdateWidget(_AnimatedProgressBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.fraction != widget.fraction) {
-      _controller.forward(from: 0);
+      if (_reduceMotion) {
+        _controller.value = 1;
+      } else {
+        _controller.forward(from: 0);
+      }
     }
   }
 
@@ -807,8 +696,6 @@ class _AnimatedProgressBarState extends State<_AnimatedProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    final disableAnimations =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
@@ -825,10 +712,11 @@ class _AnimatedProgressBarState extends State<_AnimatedProgressBar>
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) {
-                final currentFraction = disableAnimations
+                final currentFraction = _reduceMotion
                     ? clampedFraction
                     : clampedFraction * _animation.value;
                 return Container(
+                  key: widget.fillKey,
                   width: totalWidth * currentFraction,
                   height: 6,
                   decoration: BoxDecoration(
@@ -862,17 +750,20 @@ class _WorkloadCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Project workload',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  'Project workload',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${stats.projects.length} ${stats.projects.length == 1 ? 'project' : 'projects'}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -891,32 +782,41 @@ class _WorkloadCard extends StatelessWidget {
                       vertical: 8,
                       horizontal: 6,
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            project.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                project.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        _CountPill(
-                          label: '${project.open} open',
-                          color: scheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        _CountPill(
-                          label: '${project.completed} done',
-                          color: semantics.done,
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          size: 18,
-                          color: scheme.onSurfaceVariant,
+                        const SizedBox(height: 7),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _CountPill(
+                              label: '${project.open} open',
+                              color: scheme.primary,
+                            ),
+                            _CountPill(
+                              label: '${project.completed} done',
+                              color: semantics.done,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -948,10 +848,8 @@ class _CountPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -974,9 +872,7 @@ class _EmptyWorkspaceCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: scheme.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: 0.3),
-              ),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.3)),
             ),
             child: Icon(
               Icons.folder_open_rounded,
@@ -987,17 +883,15 @@ class _EmptyWorkspaceCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Your workspace is empty',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
             'Create your first project to start tracking',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: scheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -1016,30 +910,43 @@ class _QuickActions extends StatelessWidget {
   final VoidCallback onProjects;
   final VoidCallback onNewProject;
 
-  const _QuickActions({
-    required this.onProjects,
-    required this.onNewProject,
-  });
+  const _QuickActions({required this.onProjects, required this.onNewProject});
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: OutlinedButton.icon(
-          onPressed: onProjects,
-          icon: const Icon(Icons.folder_open_rounded, size: 18),
-          label: const Text('View projects'),
-        ),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: FilledButton.icon(
-          onPressed: onNewProject,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('New project'),
-        ),
-      ),
-    ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final textScale = MediaQuery.textScalerOf(context).scale(1);
+      final stackActions = constraints.maxWidth < 360 || textScale >= 1.2;
+      final projectsButton = OutlinedButton.icon(
+        onPressed: onProjects,
+        icon: const Icon(Icons.folder_open_rounded, size: 18),
+        label: const Text('View projects'),
+      );
+      final newProjectButton = FilledButton.icon(
+        onPressed: onNewProject,
+        icon: const Icon(Icons.add_rounded, size: 18),
+        label: const Text('New project'),
+      );
+
+      if (stackActions) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            projectsButton,
+            const SizedBox(height: 8),
+            newProjectButton,
+          ],
+        );
+      }
+
+      return Row(
+        children: [
+          Expanded(child: projectsButton),
+          const SizedBox(width: 10),
+          Expanded(child: newProjectButton),
+        ],
+      );
+    },
   );
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -17,6 +19,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/makko_card.dart';
 import '../../widgets/priority_chip.dart';
+import '../../widgets/refresh_error_banner.dart';
 import '../../widgets/status_chip.dart';
 import '../../widgets/tag_chip.dart';
 import '../github/github_section.dart';
@@ -47,7 +50,37 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
       sort: sort ?? _filters.sort,
     );
     setState(() => _filters = next);
-    ref.read(issuesProvider(widget.projectId).notifier).refresh(filters: next);
+    unawaited(_refreshIssues(filters: next));
+  }
+
+  Future<void> _refreshIssues({IssueFilters? filters}) async {
+    try {
+      await ref
+          .read(issuesProvider(widget.projectId).notifier)
+          .refresh(filters: filters ?? _filters);
+    } catch (_) {
+      // The previous page remains visible with an inline retry action.
+    }
+  }
+
+  Future<void> _refreshProject() async {
+    await ref.read(projectsProvider.notifier).refresh();
+  }
+
+  Future<void> _refreshGitHub() async {
+    try {
+      await ref
+          .refresh(githubProvider(widget.projectId).future)
+          .then<void>((_) {});
+    } catch (_) {}
+  }
+
+  Future<void> _refreshActivity() async {
+    try {
+      await ref
+          .refresh(activityProvider(widget.projectId).future)
+          .then<void>((_) {});
+    } catch (_) {}
   }
 
   @override
@@ -57,18 +90,18 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
     final countsAsync = ref.watch(issueStatusCountsProvider(widget.projectId));
     final scheme = Theme.of(context).colorScheme;
 
-    if (projectAsync.isLoading) {
+    if (projectAsync.isLoading && !projectAsync.hasValue) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final project = projectAsync.valueOrNull
         ?.where((item) => item.id == widget.projectId)
         .toList();
-    if (projectAsync.hasError) {
+    if (projectAsync.hasError && !projectAsync.hasValue) {
       return Scaffold(
         appBar: AppBar(title: const Text('Project')),
         body: MakkoErrorState(
           message: 'Unable to load this project.',
-          onRetry: () => ref.read(projectsProvider.notifier).refresh(),
+          onRetry: () => unawaited(_refreshProject()),
         ),
       );
     }
@@ -127,10 +160,20 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  child: _CompactProjectMetaCard(
-                    project: item,
-                    counts: countsAsync.valueOrNull ??
-                        const {'todo': 0, 'in_progress': 0, 'done': 0},
+                  child: Column(
+                    children: [
+                      if (projectAsync.hasError)
+                        RefreshErrorBanner(
+                          message: 'Could not refresh this project. Showing the last loaded details.',
+                          onRetry: _refreshProject,
+                        ),
+                      _CompactProjectMetaCard(
+                        project: item,
+                        counts:
+                            countsAsync.valueOrNull ??
+                            const {'todo': 0, 'in_progress': 0, 'done': 0},
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -142,9 +185,8 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
                     indicatorWeight: 3,
                     labelColor: scheme.primary,
                     unselectedLabelColor: scheme.onSurfaceVariant,
-                    labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    labelStyle: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
                     tabs: const [
                       Tab(text: 'Issues'),
                       Tab(text: 'GitHub'),
@@ -158,54 +200,48 @@ class _ProjectDetailScreenState extends ConsumerState<ProjectDetailScreen> {
           },
           body: TabBarView(
             children: [
-                  // Tab 1: Issues
-                  _IssuesTab(
+              // Tab 1: Issues
+              _IssuesTab(
+                projectId: widget.projectId,
+                filters: _filters,
+                issuesAsync: issuesAsync,
+                onFilterChanged: _updateFilter,
+                onLoadMore: () => ref
+                    .read(issuesProvider(widget.projectId).notifier)
+                    .loadMore(),
+                onRefresh: () async {
+                  await _refreshIssues();
+                  ref.invalidate(issueStatusCountsProvider(widget.projectId));
+                },
+                onEdit: (issue) => context.push(
+                  '/projects/${widget.projectId}/issues/${issue.id}/edit',
+                ),
+                onDelete: _confirmDeleteIssue,
+                onStatusChange: _setStatus,
+                onPriorityChange: _setPriority,
+              ),
+              // Tab 2: GitHub
+              RefreshIndicator(
+                onRefresh: _refreshGitHub,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  child: GithubSection(projectId: widget.projectId),
+                ),
+              ),
+              // Tab 3: Activity
+              RefreshIndicator(
+                onRefresh: _refreshActivity,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  child: ProjectActivitySection(
                     projectId: widget.projectId,
-                    filters: _filters,
-                    issuesAsync: issuesAsync,
-                    onFilterChanged: _updateFilter,
-                    onLoadMore: () => ref
-                        .read(issuesProvider(widget.projectId).notifier)
-                        .loadMore(),
-                    onRefresh: () async {
-                      await ref
-                          .read(issuesProvider(widget.projectId).notifier)
-                          .refresh(filters: _filters);
-                      ref.invalidate(
-                        issueStatusCountsProvider(widget.projectId),
-                      );
-                    },
-                    onEdit: (issue) => context.push(
-                      '/projects/${widget.projectId}/issues/${issue.id}/edit',
-                    ),
-                    onDelete: _confirmDeleteIssue,
-                    onStatusChange: _setStatus,
-                    onPriorityChange: _setPriority,
+                    embeddedInTab: true,
                   ),
-                  // Tab 2: GitHub
-                  RefreshIndicator(
-                    onRefresh: () async =>
-                        ref.invalidate(githubProvider(widget.projectId)),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                      child: GithubSection(projectId: widget.projectId),
-                    ),
-                  ),
-                  // Tab 3: Activity
-                  RefreshIndicator(
-                    onRefresh: () async =>
-                        ref.invalidate(activityProvider(widget.projectId)),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                      child: ProjectActivitySection(
-                        projectId: widget.projectId,
-                        embeddedInTab: true,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -367,10 +403,7 @@ class _CompactProjectMetaCard extends StatelessWidget {
   final Project project;
   final Map<String, int> counts;
 
-  const _CompactProjectMetaCard({
-    required this.project,
-    required this.counts,
-  });
+  const _CompactProjectMetaCard({required this.project, required this.counts});
 
   @override
   Widget build(BuildContext context) {
@@ -381,62 +414,63 @@ class _CompactProjectMetaCard extends StatelessWidget {
     final hasTags = project.tags.isNotEmpty;
 
     return MakkoCard(
-      padding: const EdgeInsets.all(20),
-      borderRadius: MakkoShapes.radiusXl,
+      padding: const EdgeInsets.all(16),
+      borderRadius: MakkoShapes.radiusLg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             project.name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w700,
               color: scheme.onSurface,
-              letterSpacing: -0.5,
             ),
           ),
           if (hasDescription) ...[
             const SizedBox(height: 8),
             MarkdownBody(
               data: project.description!,
-              styleSheet:
-                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.4,
-                    ),
-              ),
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                  .copyWith(
+                    p: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant, height: 1.4),
+                  ),
             ),
           ],
           if (hasTags) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: project.tags.map((tag) => TagChip(tag: tag)).toList(),
             ),
           ],
-          const SizedBox(height: 20),
-          const Divider(height: 1),
           const SizedBox(height: 16),
-          // Status summary counts with colored dots
+          const Divider(height: 1),
+          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _StatusDotCount(
-                label: 'To do',
-                count: counts['todo'] ?? 0,
-                color: semantics.todo,
+              Expanded(
+                child: _StatusDotCount(
+                  label: 'To do',
+                  count: counts['todo'] ?? 0,
+                  color: semantics.todo,
+                ),
               ),
-              _StatusDotCount(
-                label: 'In progress',
-                count: counts['in_progress'] ?? 0,
-                color: scheme.primary,
+              Expanded(
+                child: _StatusDotCount(
+                  label: 'In progress',
+                  count: counts['in_progress'] ?? 0,
+                  color: scheme.primary,
+                ),
               ),
-              _StatusDotCount(
-                label: 'Done',
-                count: counts['done'] ?? 0,
-                color: semantics.done,
+              Expanded(
+                child: _StatusDotCount(
+                  label: 'Done',
+                  count: counts['done'] ?? 0,
+                  color: semantics.done,
+                ),
               ),
             ],
           ),
@@ -459,27 +493,26 @@ class _StatusDotCount extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
         Text(
           '$count',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          style: textTheme.titleMedium?.copyWith(
+            color: color,
             fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
-        const SizedBox(width: 4),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -495,7 +528,8 @@ class _IssuesTab extends StatelessWidget {
     String? type,
     String? priority,
     String? sort,
-  }) onFilterChanged;
+  })
+  onFilterChanged;
   final VoidCallback onLoadMore;
   final RefreshCallback onRefresh;
   final ValueChanged<Issue> onEdit;
@@ -526,18 +560,28 @@ class _IssuesTab extends StatelessWidget {
           filters: filters,
           onFilterChanged: onFilterChanged,
         ),
+        if (issuesAsync.isLoading && issuesAsync.hasValue)
+          const LinearProgressIndicator(minHeight: 2),
+        if (issuesAsync.hasError && issuesAsync.hasValue)
+          RefreshErrorBanner(
+            message:
+                'Could not refresh issues. Showing the last loaded results.',
+            onRetry: onRefresh,
+          ),
         // Issues List
         Expanded(
           child: RefreshIndicator(
             onRefresh: onRefresh,
             child: issuesAsync.when(
-              skipLoadingOnRefresh: false,
+              skipLoadingOnRefresh: true,
+              skipError: true,
               loading: () => const Padding(
                 padding: EdgeInsets.all(32),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (error, _) => const MakkoErrorState(
+              error: (error, _) => MakkoErrorState(
                 message: 'Unable to load internal issues. Try again.',
+                onRetry: () => unawaited(onRefresh()),
               ),
               data: (page) {
                 if (page.items.isEmpty) {
@@ -548,8 +592,7 @@ class _IssuesTab extends StatelessWidget {
                       child: EmptyState(
                         icon: Icons.inbox_outlined,
                         title: 'No issues here',
-                        subtitle:
-                            'Adjust the filters or capture the next piece of work.',
+                        subtitle: 'Adjust the filters or capture the next piece of work.',
                       ),
                     ),
                   );
@@ -557,19 +600,28 @@ class _IssuesTab extends StatelessWidget {
 
                 return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                  itemCount: page.items.length +
-                      (page.pageCount > page.page ? 1 : 0),
+                  itemCount:
+                      page.items.length + (page.pageCount > page.page ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index < page.items.length) {
                       final issue = page.items[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          switchInCurve: Curves.easeOut,
-                          switchOutCurve: Curves.easeIn,
+                          duration:
+                              (MediaQuery.maybeOf(context)?.disableAnimations ??
+                                      false) ||
+                                  (MediaQuery.maybeOf(context)
+                                          ?.accessibleNavigation ??
+                                      false)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 180),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
                           child: _IssueCard(
-                            key: ValueKey('${issue.id}-${issue.status}-${issue.priority}-${issue.updatedAt}'),
+                            key: ValueKey(
+                              '${issue.id}-${issue.status}-${issue.priority}-${issue.updatedAt}',
+                            ),
                             issue: issue,
                             onEdit: () => onEdit(issue),
                             onDelete: () => onDelete(issue),
@@ -603,8 +655,9 @@ class _IssuesTab extends StatelessWidget {
                                     child: Text(
                                       page.paginationError!,
                                       style: TextStyle(
-                                        color:
-                                            Theme.of(context).colorScheme.error,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error,
                                       ),
                                     ),
                                   ),
@@ -617,12 +670,12 @@ class _IssuesTab extends StatelessWidget {
                             ),
                           Text(
                             'Showing ${page.items.length} of ${page.total}',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 8),
                           SizedBox(
@@ -653,7 +706,8 @@ class _HorizontalFilterBar extends StatelessWidget {
     String? type,
     String? priority,
     String? sort,
-  }) onFilterChanged;
+  })
+  onFilterChanged;
 
   const _HorizontalFilterBar({
     required this.filters,
@@ -807,9 +861,9 @@ class _HorizontalFilterBar extends StatelessWidget {
                   Text(
                     _sortLabel(filters.sort),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(width: 2),
                   Icon(
@@ -823,10 +877,7 @@ class _HorizontalFilterBar extends StatelessWidget {
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'newest', child: Text('Newest')),
               PopupMenuItem(value: 'oldest', child: Text('Oldest')),
-              PopupMenuItem(
-                value: 'updated',
-                child: Text('Recently updated'),
-              ),
+              PopupMenuItem(value: 'updated', child: Text('Recently updated')),
               PopupMenuItem(value: 'title', child: Text('Title')),
               PopupMenuItem(value: 'priority', child: Text('Priority')),
             ],
@@ -966,10 +1017,7 @@ class _IssueCard extends StatelessWidget {
                         }
                       },
                       itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Text('Edit'),
-                        ),
+                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
                         const PopupMenuDivider(),
                         PopupMenuItem(
                           value: 'status:todo',
@@ -1006,15 +1054,17 @@ class _IssueCard extends StatelessWidget {
                     child: MarkdownBody(
                       data: issue.description!,
                       styleSheet:
-                          MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                        p: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                        code: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              backgroundColor: scheme.surfaceContainerHighest,
-                              fontFamily: 'monospace',
-                            ),
-                      ),
+                          MarkdownStyleSheet.fromTheme(Theme.of(context))
+                              .copyWith(
+                                p: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: scheme.onSurfaceVariant),
+                                code: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      backgroundColor:
+                                          scheme.surfaceContainerHighest,
+                                      fontFamily: 'monospace',
+                                    ),
+                              ),
                     ),
                   ),
                 const SizedBox(height: 10),
@@ -1025,11 +1075,13 @@ class _IssueCard extends StatelessWidget {
                       message: 'Tap to change status',
                       child: Material(
                         color: Colors.transparent,
-                        borderRadius:
-                            BorderRadius.circular(MakkoShapes.radiusFull),
+                        borderRadius: BorderRadius.circular(
+                          MakkoShapes.radiusFull,
+                        ),
                         child: InkWell(
-                          borderRadius:
-                              BorderRadius.circular(MakkoShapes.radiusFull),
+                          borderRadius: BorderRadius.circular(
+                            MakkoShapes.radiusFull,
+                          ),
                           onTap: () {
                             final next = switch (issue.status) {
                               'todo' => 'in_progress',
@@ -1056,25 +1108,24 @@ class _IssueCard extends StatelessWidget {
 }
 
 String _sortLabel(String sort) => switch (sort) {
-      'oldest' => 'Oldest',
-      'updated' => 'Recently updated',
-      'title' => 'Title',
-      'priority' => 'Priority',
-      _ => 'Newest',
-    };
+  'oldest' => 'Oldest',
+  'updated' => 'Recently updated',
+  'title' => 'Title',
+  'priority' => 'Priority',
+  _ => 'Newest',
+};
 
 String _statusLabel(String status) => switch (status) {
-      'in_progress' => 'In progress',
-      'done' => 'Done',
-      _ => 'To do',
-    };
+  'in_progress' => 'In progress',
+  'done' => 'Done',
+  _ => 'To do',
+};
 
 String _priorityLabel(String priority) => switch (priority) {
-      'high' => 'High',
-      'medium' => 'Medium',
-      _ => 'Low',
-    };
-
+  'high' => 'High',
+  'medium' => 'Medium',
+  _ => 'Low',
+};
 
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
@@ -1089,7 +1140,10 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(

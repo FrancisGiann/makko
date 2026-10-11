@@ -5,8 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _themeKey = 'makko-theme';
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.dark) {
-    _restore();
+  ThemeModeNotifier({
+    ThemeMode initialMode = ThemeMode.dark,
+    bool restore = true,
+  }) : super(initialMode) {
+    if (restore) _restore();
   }
 
   Future<void> _restore() async {
@@ -41,6 +44,20 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
   Future<void> toggle() =>
       setMode(state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+}
+
+Future<ThemeMode> loadSavedThemeMode() async {
+  try {
+    final preferences = await SharedPreferences.getInstance();
+    return switch (preferences.getString(_themeKey)) {
+      'light' => ThemeMode.light,
+      'system' => ThemeMode.system,
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.dark,
+    };
+  } catch (_) {
+    return ThemeMode.dark;
+  }
 }
 
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(

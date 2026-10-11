@@ -42,13 +42,14 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
     final selectedFilters = filters ?? _filters;
     _filters = selectedFilters;
     final generation = ++_requestGeneration;
-    state = const AsyncValue.loading();
+    final previous = state;
+    state = const AsyncLoading<IssuePage>().copyWithPrevious(previous);
     try {
       final page = await _fetchIssues(filters: selectedFilters);
       if (generation == _requestGeneration) state = AsyncValue.data(page);
     } catch (error, stack) {
       if (generation == _requestGeneration) {
-        state = AsyncValue.error(error, stack);
+        state = AsyncError<IssuePage>(error, stack).copyWithPrevious(previous);
       }
       Error.throwWithStackTrace(error, stack);
     }
@@ -105,7 +106,12 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(issueStatusCountsProvider(arg));
     ref.invalidate(activityProvider(arg));
-    await refresh();
+    try {
+      await refresh();
+    } catch (_) {
+      // The create succeeded; leave any stale list visible with its refresh
+      // error rather than keeping the form open and risking a duplicate issue.
+    }
   }
 
   Future<void> updateIssue({
@@ -136,7 +142,7 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
           updatedAt: DateTime.now(),
         );
         items[index] = updated;
-        
+
         // Local sort to immediately move "done" tasks to the bottom
         items.sort((a, b) {
           int statusWeight(String s) {
@@ -145,12 +151,13 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
             if (s == 'done') return 2;
             return 3;
           }
+
           final wA = statusWeight(a.status);
           final wB = statusWeight(b.status);
           if (wA != wB) return wA.compareTo(wB);
           return b.updatedAt.compareTo(a.updatedAt);
         });
-        
+
         state = AsyncValue.data(current.copyWith(items: items));
       }
     }
@@ -176,7 +183,7 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(issueStatusCountsProvider(arg));
     ref.invalidate(activityProvider(arg));
-    
+
     // Silent refresh (do not set state to loading)
     final selectedFilters = filters ?? _filters;
     _filters = selectedFilters;
@@ -196,7 +203,12 @@ class IssuesNotifier extends FamilyAsyncNotifier<IssuePage, String> {
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(issueStatusCountsProvider(arg));
     ref.invalidate(activityProvider(arg));
-    await refresh(filters: filters);
+    try {
+      await refresh(filters: filters);
+    } catch (_) {
+      // The delete already succeeded remotely. A later refresh can recover the
+      // list without telling the user the mutation itself failed.
+    }
   }
 }
 
@@ -223,10 +235,10 @@ final issueProvider = FutureProvider.autoDispose.family<Issue?, IssueLookup>((
       .getIssue(lookup.projectId, lookup.issueId);
 });
 
-final searchIssuesProvider =
-    FutureProvider.autoDispose.family<List<Issue>, String>((ref, query) async {
-  final cleanQuery = query.trim();
-  if (cleanQuery.isEmpty) return const [];
-  if (ref.watch(authUserIdProvider) == null) return const [];
-  return ref.read(issueServiceProvider).searchIssues(cleanQuery);
-});
+final searchIssuesProvider = FutureProvider.autoDispose
+    .family<List<Issue>, String>((ref, query) async {
+      final cleanQuery = query.trim();
+      if (cleanQuery.isEmpty) return const [];
+      if (ref.watch(authUserIdProvider) == null) return const [];
+      return ref.read(issueServiceProvider).searchIssues(cleanQuery);
+    });

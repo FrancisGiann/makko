@@ -8,6 +8,7 @@ import '../../models/dashboard_stats.dart';
 import '../github/github_contribution_graph.dart';
 import 'companion_widget_render.dart';
 import 'heatmap_widget_render.dart';
+import 'quick_capture_queue.dart';
 
 /// Centralized manager for Android Home Screen Widgets using the `home_widget` plugin.
 class HomeWidgetManager {
@@ -21,43 +22,67 @@ class HomeWidgetManager {
   static const String captureScheme = 'makko';
   static const String captureHost = 'makko';
   static const String capturePath = '/capture';
-  static const String captureDeepLink = '$captureScheme://$captureHost';
+  static const String captureDeepLink =
+      '$captureScheme://$captureHost$capturePath';
 
   static StreamSubscription<Uri?>? _widgetClickedSubscription;
+  static Future<void>? _initialization;
+  static VoidCallback? _onQuickCapture;
+  static int _generation = 0;
+  static bool _initialized = false;
 
   /// Check if a given URI corresponds to the Makko Quick Capture action.
   static bool isCaptureUri(Uri? uri) {
-    if (uri == null) return false;
-    return uri.scheme == captureScheme && uri.host == captureHost && uri.path == capturePath;
+    return QuickCaptureQueue.isWidgetCaptureUri(uri);
   }
 
   /// Initialize deep-link listening for home screen widget clicks.
-  static Future<void> initialize({
-    required VoidCallback onQuickCapture,
-  }) async {
-    try {
-      // 1. Check if the app was launched cold from a home widget click
-      final initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
-      if (isCaptureUri(initialUri)) {
-        onQuickCapture();
-      }
+  static Future<void> initialize({required VoidCallback onQuickCapture}) async {
+    _onQuickCapture = onQuickCapture;
+    if (_initialized) return;
+    final existing = _initialization;
+    if (existing != null) return existing;
 
-      // 2. Listen for clicks when the app is already in the background/foreground
-      _widgetClickedSubscription?.cancel();
+    final generation = ++_generation;
+    final future = _listenForWidgetClicks(generation);
+    _initialization = future;
+    await future;
+    if (identical(_initialization, future)) _initialization = null;
+  }
+
+  static Future<void> _listenForWidgetClicks(int generation) async {
+    try {
       _widgetClickedSubscription = HomeWidget.widgetClicked.listen((uri) {
-        if (isCaptureUri(uri)) {
-          onQuickCapture();
+        if (generation == _generation && isCaptureUri(uri)) {
+          _dispatchCapture(uri!);
         }
-      });
-    } catch (e) {
-      debugPrint('HomeWidgetManager initialization error: $e');
+      }, onError: (_) {});
+
+      final initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (generation != _generation) return;
+      if (isCaptureUri(initialUri)) _dispatchCapture(initialUri!);
+      _initialized = true;
+    } catch (_) {
+      if (generation == _generation) {
+        _widgetClickedSubscription?.cancel();
+        _widgetClickedSubscription = null;
+        _initialized = false;
+      }
     }
+  }
+
+  static void _dispatchCapture(Uri uri) {
+    _onQuickCapture?.call();
   }
 
   /// Dispose listeners.
   static void dispose() {
+    _generation++;
     _widgetClickedSubscription?.cancel();
     _widgetClickedSubscription = null;
+    _initialization = null;
+    _onQuickCapture = null;
+    _initialized = false;
   }
 
   /// Updates the Quick Capture widget.
@@ -108,10 +133,7 @@ class HomeWidgetManager {
   }) async {
     try {
       final imagePath = await HomeWidget.renderFlutterWidget(
-        HeatmapWidgetRender(
-          username: username,
-          data: data,
-        ),
+        HeatmapWidgetRender(username: username, data: data),
         key: heatmapImageKey,
         logicalSize: const Size(380, 180),
       );

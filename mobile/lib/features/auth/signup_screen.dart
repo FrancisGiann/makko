@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/validation.dart';
 import '../../widgets/makko_logo.dart';
+import 'auth_error_message.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -38,12 +39,15 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       if (mounted && result.requiresEmailConfirmation) {
         setState(
-          () => _success =
-              'Account created. Check your email to confirm your address, then sign in.',
+          () => _success = 'Account created. Check your email to confirm your address, then sign in.',
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = _signupMessage(error));
+      if (mounted) {
+        setState(
+          () => _error = authErrorMessage(error, action: AuthAction.signUp),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -82,9 +86,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Keep projects, issues, and code context in one calm place.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 28),
                   Card(
@@ -121,7 +124,9 @@ class _SignupScreenState extends State<SignupScreen> {
                               validator: Validation.validatePassword,
                               decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline_rounded,
+                                ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscurePassword
@@ -132,8 +137,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                       ? 'Show password'
                                       : 'Hide password',
                                   onPressed: () => setState(
-                                    () =>
-                                        _obscurePassword = !_obscurePassword,
+                                    () => _obscurePassword = !_obscurePassword,
                                   ),
                                 ),
                               ),
@@ -145,11 +149,13 @@ class _SignupScreenState extends State<SignupScreen> {
                               textInputAction: TextInputAction.done,
                               validator: (value) =>
                                   value != _passwordController.text
-                                      ? 'Passwords do not match'
-                                      : null,
+                                  ? 'Passwords do not match'
+                                  : null,
                               decoration: InputDecoration(
                                 labelText: 'Confirm password',
-                                prefixIcon: const Icon(Icons.verified_user_outlined),
+                                prefixIcon: const Icon(
+                                  Icons.verified_user_outlined,
+                                ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscureConfirmPassword
@@ -235,11 +241,4 @@ class _MessageBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-String _signupMessage(Object error) {
-  final message = error.toString().replaceFirst('AuthException: ', '').trim();
-  if (message.isEmpty || message.contains('Exception'))
-    return 'Unable to create your account. Check your details and try again.';
-  return message;
 }

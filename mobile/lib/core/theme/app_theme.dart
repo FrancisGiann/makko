@@ -108,59 +108,59 @@ class MakkoShapes {
 
 class MakkoText {
   static TextTheme get textTheme {
-    final base = GoogleFonts.hankenGroteskTextTheme();
+    final base = GoogleFonts.geistTextTheme();
     return base.copyWith(
-      displaySmall: GoogleFonts.hankenGrotesk(
-        fontSize: 30,
+      displaySmall: GoogleFonts.geist(
+        fontSize: 32,
         fontWeight: FontWeight.w700,
         height: 1.2,
       ),
-      headlineLarge: GoogleFonts.hankenGrotesk(
-        fontSize: 26,
+      headlineLarge: GoogleFonts.geist(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+      ),
+      headlineMedium: GoogleFonts.geist(
+        fontSize: 24,
         fontWeight: FontWeight.w700,
         height: 1.25,
       ),
-      headlineMedium: GoogleFonts.hankenGrotesk(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
-        height: 1.3,
-      ),
-      titleLarge: GoogleFonts.hankenGrotesk(
-        fontSize: 18,
+      titleLarge: GoogleFonts.geist(
+        fontSize: 20,
         fontWeight: FontWeight.w700,
         height: 1.33,
       ),
-      titleMedium: GoogleFonts.hankenGrotesk(
+      titleMedium: GoogleFonts.geist(
         fontSize: 16,
         fontWeight: FontWeight.w700,
         height: 1.4,
       ),
-      bodyLarge: GoogleFonts.hankenGrotesk(
+      bodyLarge: GoogleFonts.geist(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         height: 1.5,
       ),
-      bodyMedium: GoogleFonts.hankenGrotesk(
+      bodyMedium: GoogleFonts.geist(
         fontSize: 14,
         fontWeight: FontWeight.w400,
         height: 1.45,
       ),
-      bodySmall: GoogleFonts.hankenGrotesk(
+      bodySmall: GoogleFonts.geist(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         height: 1.4,
       ),
-      labelLarge: GoogleFonts.hankenGrotesk(
+      labelLarge: GoogleFonts.geist(
         fontSize: 14,
         fontWeight: FontWeight.w700,
         height: 1.3,
       ),
-      labelMedium: GoogleFonts.jetBrainsMono(
+      labelMedium: GoogleFonts.geist(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         height: 1.3,
       ),
-      labelSmall: GoogleFonts.hankenGrotesk(
+      labelSmall: GoogleFonts.geist(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         height: 1.3,
@@ -340,11 +340,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         indicatorColor: scheme.primaryContainer,
         elevation: 0,
-        labelTextStyle: WidgetStatePropertyAll(
-          base.textTheme.labelMedium?.copyWith(
-            fontFamily: GoogleFonts.hankenGrotesk().fontFamily,
-          ),
-        ),
+        labelTextStyle: WidgetStatePropertyAll(base.textTheme.labelMedium),
       ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: scheme.surfaceContainerLow,

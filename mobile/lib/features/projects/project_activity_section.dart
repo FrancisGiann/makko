@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -52,10 +53,16 @@ class _ProjectActivitySectionState
     if (_scope == ActivityScope.last30Days && initial.hasValue) {
       _scheduleProviderPage(initial.value!);
     }
-    if (initial.hasError && _items.isEmpty) {
-      return MakkoErrorState(message: 'Unable to load project activity.');
+    if ((initial.hasError || _error != null) &&
+        _items.isEmpty &&
+        !_loadingMore) {
+      return MakkoErrorState(
+        message:
+            'Unable to load project activity. Check your connection and retry.',
+        onRetry: () => unawaited(_refreshCurrentScope()),
+      );
     }
-    if (initial.isLoading && _items.isEmpty) {
+    if ((initial.isLoading || _loadingMore) && _items.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(24),
         child: Center(child: CircularProgressIndicator()),
@@ -148,7 +155,8 @@ class _ProjectActivitySectionState
                     return _TimelineActivityRow(
                       log: _items[index],
                       isFirst: index == 0,
-                      isLast: index == _items.length - 1 &&
+                      isLast:
+                          index == _items.length - 1 &&
                           !_loadingMore &&
                           !_hasMore,
                     );
@@ -188,7 +196,7 @@ class _ProjectActivitySectionState
     setState(() {
       _scope = scope;
       _items.clear();
-      _loadingMore = false;
+      _loadingMore = true;
       _page = 1;
       _hasMore = false;
       _error = null;
@@ -205,11 +213,15 @@ class _ProjectActivitySectionState
             ..addAll(page.items);
           _hasMore = page.hasMore;
           _page = page.page;
+          _loadingMore = false;
         });
       }
     } catch (error) {
       if (mounted && generation == _generation && _scope == scope) {
-        setState(() => _error = error);
+        setState(() {
+          _error = error;
+          _loadingMore = false;
+        });
       }
     }
   }
@@ -343,10 +355,7 @@ class _TimelineActivityRow extends StatelessWidget {
                 Positioned(
                   top: isFirst ? 13 : 0,
                   bottom: isLast ? 13 : 0,
-                  child: Container(
-                    width: 2,
-                    color: lineColor,
-                  ),
+                  child: Container(width: 2, color: lineColor),
                 ),
                 Container(
                   width: 26,
@@ -354,16 +363,9 @@ class _TimelineActivityRow extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: color,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: color, width: 1.5),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 14,
-                    color: color,
-                  ),
+                  child: Icon(icon, size: 14, color: color),
                 ),
               ],
             ),
@@ -377,16 +379,14 @@ class _TimelineActivityRow extends StatelessWidget {
                 children: [
                   Text(
                     log.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     _relative(log.createdAt),
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.labelMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ),

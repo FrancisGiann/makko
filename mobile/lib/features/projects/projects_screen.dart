@@ -13,6 +13,7 @@ import '../../widgets/error_state.dart';
 import '../../widgets/makko_logo.dart';
 import '../../widgets/makko_card.dart';
 import '../../widgets/makko_search_delegate.dart';
+import '../../widgets/refresh_error_banner.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/tag_chip.dart';
 
@@ -24,6 +25,16 @@ class ProjectsScreen extends ConsumerWidget {
     final projectsAsync = ref.watch(projectsProvider);
     final dashboardAsync = ref.watch(dashboardStatsProvider);
     final scheme = Theme.of(context).colorScheme;
+
+    Future<void> refreshProjects() async {
+      await ref.read(projectsProvider.notifier).refresh();
+      try {
+        await ref.refresh(dashboardStatsProvider.future).then<void>((_) {});
+      } catch (_) {
+        // Project content is already retained and remains usable offline.
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const MakkoLogo(compact: true),
@@ -50,11 +61,12 @@ class ProjectsScreen extends ConsumerWidget {
         label: const Text('New project'),
       ),
       body: projectsAsync.when(
-        skipLoadingOnRefresh: false,
+        skipLoadingOnRefresh: true,
+        skipError: true,
         loading: () => const _ProjectsLoadingSkeleton(),
         error: (error, _) => MakkoErrorState(
           message: _friendlyProjectError(error),
-          onRetry: () => ref.read(projectsProvider.notifier).refresh(),
+          onRetry: () => unawaited(refreshProjects()),
         ),
         data: (projects) {
           if (projects.isEmpty) {
@@ -71,13 +83,15 @@ class ProjectsScreen extends ConsumerWidget {
           }
           final summaries = dashboardAsync.valueOrNull?.projects ?? const [];
           return RefreshIndicator(
-            onRefresh: () async {
-              await ref.read(projectsProvider.notifier).refresh();
-              ref.invalidate(dashboardStatsProvider);
-            },
+            onRefresh: refreshProjects,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
               children: [
+                if (projectsAsync.hasError)
+                  RefreshErrorBanner(
+                    message: 'Could not refresh projects. Showing the last loaded list.',
+                    onRetry: refreshProjects,
+                  ),
                 Text(
                   'Projects',
                   style: Theme.of(context).textTheme.headlineLarge,
@@ -90,23 +104,19 @@ class ProjectsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 ...projects.asMap().entries.map((entry) {
-                  final index = entry.key;
                   final project = entry.value;
                   final summary = summaries
                       .where((item) => item.id == project.id)
                       .toList();
                   final counts = summary.isEmpty ? null : summary.first;
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _StaggeredCard(
-                      index: index,
-                      child: _ProjectCard(
-                        project: project,
-                        openCount: counts?.open ?? 0,
-                        completedCount: counts?.completed ?? 0,
-                        totalCount: counts?.total ?? 0,
-                        onTap: () => context.push('/projects/${project.id}'),
-                      ),
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _ProjectCard(
+                      project: project,
+                      openCount: counts?.open ?? 0,
+                      completedCount: counts?.completed ?? 0,
+                      totalCount: counts?.total ?? 0,
+                      onTap: () => context.push('/projects/${project.id}'),
                     ),
                   );
                 }),
@@ -114,86 +124,6 @@ class ProjectsScreen extends ConsumerWidget {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _StaggeredCard extends StatefulWidget {
-  final int index;
-  final Widget child;
-
-  const _StaggeredCard({
-    required this.index,
-    required this.child,
-  });
-
-  @override
-  State<_StaggeredCard> createState() => _StaggeredCardState();
-}
-
-class _StaggeredCardState extends State<_StaggeredCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 320),
-    );
-    _fade = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
-
-    final delayMs = (widget.index * 80).clamp(0, 600);
-    if (delayMs == 0) {
-      _controller.forward();
-    } else {
-      _timer = Timer(Duration(milliseconds: delayMs), () {
-        if (mounted) _controller.forward();
-      });
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
-      _timer?.cancel();
-      _controller.value = 1.0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
-      return widget.child;
-    }
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
       ),
     );
   }
@@ -279,79 +209,87 @@ class _ProjectCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(MakkoShapes.radiusLg),
         onTap: onTap,
         child: MakkoCard(
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(MakkoShapes.radius),
-                ),
-                child: Icon(
-                  Icons.folder_rounded,
-                  color: scheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      project.name,
-                      style: Theme.of(context).textTheme.titleLarge,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    if (project.description != null &&
-                      project.description!.isNotEmpty) ...[
-                      const SizedBox(height: 5),
-                      Text(
-                        project.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                    if (project.tags.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: project.tags
-                            .take(4)
-                            .map<Widget>((tag) => TagChip(tag: tag))
-                            .toList(),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    Row(
+                    child: Icon(
+                      Icons.folder_open_rounded,
+                      color: scheme.onPrimaryContainer,
+                      size: 21,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _CountPill(
-                          label: '$openCount open',
-                          color: scheme.primary,
+                        Text(
+                          project.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 8),
-                        _CountPill(
-                          label: '$completedCount done',
-                          color: semantics.done,
-                        ),
-                        if (totalCount > 0) ...[
-                          const SizedBox(width: 8),
+                        if (project.description?.trim().isNotEmpty == true) ...[
+                          const SizedBox(height: 3),
                           Text(
-                            '$totalCount total',
+                            project.description!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: scheme.onSurfaceVariant),
                           ),
                         ],
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+              if (project.tags.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: project.tags
+                      .take(3)
+                      .map<Widget>((tag) => TagChip(tag: tag))
+                      .toList(),
+                ),
+              ],
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 7,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _CountPill(label: '$openCount open', color: scheme.primary),
+                  _CountPill(
+                    label: '$completedCount done',
+                    color: semantics.done,
+                  ),
+                  if (totalCount > 0)
+                    Text(
+                      '$totalCount total',
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
@@ -377,10 +315,8 @@ class _CountPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }

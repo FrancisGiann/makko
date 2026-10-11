@@ -31,7 +31,7 @@
                 <action android:name="es.antonborri.home_widget.action.LAUNCH" />
             </intent-filter>
 
-            <!-- Deep link for quick capture: makko://capture -->
+            <!-- Canonical quick capture: makko://makko/capture -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -39,7 +39,18 @@
                 <data
                     android:scheme="makko"
                     android:host="makko"
-                    android:pathPrefix="/capture" />
+                    android:path="/capture" />
+            </intent-filter>
+
+            <!-- Accept the first widget build's legacy tap link as well. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="makko"
+                    android:host="capture"
+                    android:path="" />
             </intent-filter>
         </activity>
 

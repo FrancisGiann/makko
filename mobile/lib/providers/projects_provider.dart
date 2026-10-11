@@ -44,7 +44,8 @@ class ProjectsNotifier extends AsyncNotifier<List<Project>> {
       state = const AsyncValue.data([]);
       return;
     }
-    state = const AsyncValue.loading();
+    final previous = state;
+    state = const AsyncLoading<List<Project>>().copyWithPrevious(previous);
     try {
       final projects = await _fetchProjects(userId);
       if (generation == _requestGeneration &&
@@ -54,7 +55,10 @@ class ProjectsNotifier extends AsyncNotifier<List<Project>> {
     } catch (error, stack) {
       if (generation == _requestGeneration &&
           ref.read(authUserIdProvider) == userId) {
-        state = AsyncValue.error(error, stack);
+        state = AsyncError<List<Project>>(
+          error,
+          stack,
+        ).copyWithPrevious(previous);
       }
     }
   }

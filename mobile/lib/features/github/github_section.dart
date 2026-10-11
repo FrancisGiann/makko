@@ -9,6 +9,7 @@ import '../../providers/github_provider.dart';
 import '../../widgets/app_section_header.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/makko_card.dart';
+import '../../widgets/refresh_error_banner.dart';
 import 'github_connection_sheet.dart';
 
 class GithubSection extends ConsumerWidget {
@@ -19,21 +20,36 @@ class GithubSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dataAsync = ref.watch(githubProvider(projectId));
     final action = ref.watch(githubNotifierProvider);
+
+    Future<void> retryData() async {
+      try {
+        await ref.refresh(githubProvider(projectId).future).then<void>((_) {});
+      } catch (_) {
+        // If a repository was previously loaded, its data remains available.
+      }
+    }
+
     return dataAsync.when(
-      skipLoadingOnRefresh: false,
+      skipLoadingOnRefresh: true,
+      skipError: true,
       loading: () => const Padding(
         padding: EdgeInsets.all(24),
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => MakkoErrorState(
         message: 'Unable to load GitHub activity.',
-        onRetry: () => ref.invalidate(githubProvider(projectId)),
+        onRetry: () => retryData(),
       ),
       data: (data) {
         if (data.link == null) return _ConnectCard(projectId: projectId);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (dataAsync.hasError)
+              RefreshErrorBanner(
+                message: 'Could not refresh GitHub activity. Showing the last loaded data.',
+                onRetry: retryData,
+              ),
             AppSectionHeader(
               title: 'GitHub',
               subtitle: 'Read-only code context',

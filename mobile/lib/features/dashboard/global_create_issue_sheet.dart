@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/makko_motion.dart';
 import '../../models/project.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/issues_provider.dart';
@@ -18,6 +19,7 @@ class GlobalCreateIssueSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      sheetAnimationStyle: MakkoMotion.sheetStyle(context),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -54,7 +56,8 @@ class _GlobalCreateIssueSheetState
   }
 
   Future<void> _submit(List<Project> projects) async {
-    final projectId = _selectedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
+    final projectId =
+        _selectedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
     if (projectId == null) {
       setState(() => _error = 'Please select a project for this issue.');
       return;
@@ -71,7 +74,9 @@ class _GlobalCreateIssueSheetState
       final title = _titleController.text.trim();
       final description = _descriptionController.text.trim();
 
-      await ref.read(issuesProvider(projectId).notifier).createIssue(
+      await ref
+          .read(issuesProvider(projectId).notifier)
+          .createIssue(
             title: title,
             description: description.isEmpty ? null : description,
             type: _type,
@@ -84,17 +89,19 @@ class _GlobalCreateIssueSheetState
 
       if (mounted) {
         Navigator.of(context).pop();
-        final projectName = projects.firstWhere(
-          (p) => p.id == projectId,
-          orElse: () => Project(
-            id: projectId,
-            ownerId: '',
-            name: 'project',
-            tags: const [],
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        ).name;
+        final projectName = projects
+            .firstWhere(
+              (p) => p.id == projectId,
+              orElse: () => Project(
+                id: projectId,
+                ownerId: '',
+                name: 'project',
+                tags: const [],
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            )
+            .name;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Issue captured into $projectName'),
@@ -147,7 +154,9 @@ class _GlobalCreateIssueSheetState
                     height: 4,
                     decoration: BoxDecoration(
                       color: scheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(MakkoShapes.radiusFull),
+                      borderRadius: BorderRadius.circular(
+                        MakkoShapes.radiusFull,
+                      ),
                     ),
                   ),
                 ),
@@ -164,8 +173,9 @@ class _GlobalCreateIssueSheetState
                           height: 34,
                           decoration: BoxDecoration(
                             color: scheme.primary.withValues(alpha: 0.12),
-                            borderRadius:
-                                BorderRadius.circular(MakkoShapes.radius),
+                            borderRadius: BorderRadius.circular(
+                              MakkoShapes.radius,
+                            ),
                           ),
                           child: Icon(
                             Icons.bolt_rounded,
@@ -176,9 +186,8 @@ class _GlobalCreateIssueSheetState
                         const SizedBox(width: 10),
                         Text(
                           'Quick Capture',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -192,9 +201,8 @@ class _GlobalCreateIssueSheetState
                 const SizedBox(height: 4),
                 Text(
                   'Quickly file a task or bug into any of your projects.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: scheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 20),
 
@@ -278,10 +286,9 @@ class _GlobalCreateIssueSheetState
                     textCapitalization: TextCapitalization.sentences,
                     minLines: 2,
                     maxLines: 4,
-                    validator: (value) =>
-                        (value?.trim().length ?? 0) > 10000
-                            ? 'Description must be 10,000 characters or fewer'
-                            : null,
+                    validator: (value) => (value?.trim().length ?? 0) > 10000
+                        ? 'Description must be 10,000 characters or fewer'
+                        : null,
                     decoration: const InputDecoration(
                       labelText: 'Description (optional)',
                       hintText: 'Add context or reproduction steps…',
@@ -294,9 +301,9 @@ class _GlobalCreateIssueSheetState
                   Text(
                     'Type',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -326,9 +333,9 @@ class _GlobalCreateIssueSheetState
                   Text(
                     'Priority',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -351,9 +358,9 @@ class _GlobalCreateIssueSheetState
                   Text(
                     'Status',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -380,8 +387,7 @@ class _GlobalCreateIssueSheetState
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: scheme.errorContainer,
-                        borderRadius:
-                            BorderRadius.circular(MakkoShapes.radius),
+                        borderRadius: BorderRadius.circular(MakkoShapes.radius),
                       ),
                       child: Row(
                         children: [

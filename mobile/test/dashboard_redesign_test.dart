@@ -10,41 +10,45 @@ import 'package:mobile/widgets/workspace_pulse_bar.dart';
 
 void main() {
   group('ShimmerLoading', () {
-    testWidgets('ShimmerContainer and ShimmerBox render with and without animations', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: const Scaffold(
-            body: ShimmerContainer(
-              child: ShimmerBox(width: 100, height: 20),
+    testWidgets(
+      'ShimmerContainer and ShimmerBox render with and without animations',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const Scaffold(
+              body: ShimmerContainer(child: ShimmerBox(width: 100, height: 20)),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byType(ShimmerBox), findsOneWidget);
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.byType(ShimmerBox), findsOneWidget);
+        expect(find.byType(ShimmerBox), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(ShimmerBox), findsOneWidget);
 
-      // Verify reduced motion / disabled animations
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: const MediaQuery(
-            data: MediaQueryData(disableAnimations: true),
-            child: Scaffold(
-              body: ShimmerContainer(
-                child: ShimmerBox(width: 100, height: 20),
+        // Verify both platform reduced-motion signals stop the shimmer loop.
+        for (final media in [
+          const MediaQueryData(disableAnimations: true),
+          const MediaQueryData(accessibleNavigation: true),
+        ]) {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: AppTheme.darkTheme,
+              home: MediaQuery(
+                data: media,
+                child: const Scaffold(
+                  body: ShimmerContainer(
+                    child: ShimmerBox(width: 100, height: 20),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      );
-      await tester.pump();
-      expect(find.byType(ShimmerBox), findsOneWidget);
-    });
+          );
+          await tester.pump();
+          expect(find.byType(ShimmerBox), findsOneWidget);
+        }
+      },
+    );
   });
 
   group('WorkspacePulseBar', () {
@@ -75,9 +79,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.darkTheme,
-          home: const Scaffold(
-            body: WorkspacePulseBar(completed: 0, total: 0),
-          ),
+          home: const Scaffold(body: WorkspacePulseBar(completed: 0, total: 0)),
         ),
       );
 
@@ -87,82 +89,102 @@ void main() {
   });
 
   group('DashboardScreen', () {
-    testWidgets('displays companion, metric strip, breakdowns, and workload when projects exist', (
-      tester,
-    ) async {
-      final stats = DashboardStats(
-        projectCount: 2,
-        totalIssues: 5,
-        openIssues: 3,
-        completedIssues: 2,
-        byStatus: const {'todo': 2, 'in_progress': 1, 'done': 2},
-        byType: const {'task': 3, 'bug': 2},
-        byPriority: const {'high': 1, 'medium': 2, 'low': 2},
-        projects: [
-          ProjectSummary(
-            id: 'proj-1',
-            name: 'Makko Mobile',
-            total: 3,
-            open: 2,
-            completed: 1,
-          ),
-          ProjectSummary(
-            id: 'proj-2',
-            name: 'Makko Web',
-            total: 2,
-            open: 1,
-            completed: 1,
-          ),
-        ],
-      );
-
-      tester.view.physicalSize = const Size(800, 2000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            dashboardStatsProvider.overrideWith((ref) => stats),
+    testWidgets(
+      'displays companion, metric strip, breakdowns, and workload when projects exist',
+      (tester) async {
+        final stats = DashboardStats(
+          projectCount: 2,
+          totalIssues: 5,
+          openIssues: 3,
+          completedIssues: 2,
+          byStatus: const {'todo': 2, 'in_progress': 1, 'done': 2},
+          byType: const {'task': 3, 'bug': 2},
+          byPriority: const {'high': 1, 'medium': 2, 'low': 2},
+          projects: [
+            ProjectSummary(
+              id: 'proj-1',
+              name: 'Makko Mobile',
+              total: 3,
+              open: 2,
+              completed: 1,
+            ),
+            ProjectSummary(
+              id: 'proj-2',
+              name: 'Makko Web',
+              total: 2,
+              open: 1,
+              completed: 1,
+            ),
           ],
-          child: MaterialApp(
-            theme: AppTheme.darkTheme,
-            home: const DashboardScreen(),
+        );
+
+        tester.view.physicalSize = const Size(800, 2000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [dashboardStatsProvider.overrideWith((ref) => stats)],
+            child: MaterialApp(
+              theme: AppTheme.darkTheme,
+              home: const DashboardScreen(),
+            ),
           ),
-        ),
-      );
+        );
 
-      // Pump through animations
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        // Pump through animations
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 900));
 
-      // Page Title
-      expect(find.text('Dashboard'), findsOneWidget);
+        // Page Title
+        expect(find.text('Dashboard'), findsOneWidget);
 
-      // High Alert mood because highPriority == 1
-      expect(find.text('High Alert'), findsOneWidget);
-      expect(find.textContaining('1 urgent item that needs attention'), findsOneWidget);
+        expect(find.text('Builder'), findsOneWidget);
+        expect(find.text('3 open issues across 2 projects.'), findsOneWidget);
+        expect(find.textContaining('urgent'), findsNothing);
 
-      // Metric strip counts
-      expect(find.text('Projects'), findsOneWidget);
-      expect(find.text('All Issues'), findsOneWidget);
-      expect(find.text('Open'), findsOneWidget);
-      expect(find.text('Completed'), findsOneWidget);
+        // Metric strip counts
+        expect(find.text('Projects'), findsOneWidget);
+        expect(find.text('Issues'), findsOneWidget);
+        expect(find.text('Open'), findsOneWidget);
+        expect(find.text('Done'), findsNWidgets(2));
 
-      // Breakdowns
-      expect(find.text('By Status'), findsOneWidget);
-      expect(find.text('By Priority'), findsOneWidget);
+        // Breakdowns
+        expect(find.text('By Status'), findsOneWidget);
+        expect(find.text('By Priority'), findsOneWidget);
 
-      // Workload
-      expect(find.text('Project workload'), findsOneWidget);
-      expect(find.text('Makko Mobile'), findsOneWidget);
-      expect(find.text('Makko Web'), findsOneWidget);
+        final todoWidth = tester
+            .getSize(
+              find.byKey(const ValueKey('dashboard-breakdown-fill-todo')),
+            )
+            .width;
+        final inProgressWidth = tester
+            .getSize(
+              find.byKey(
+                const ValueKey('dashboard-breakdown-fill-in-progress'),
+              ),
+            )
+            .width;
+        final doneWidth = tester
+            .getSize(
+              find.byKey(const ValueKey('dashboard-breakdown-fill-done')),
+            )
+            .width;
+        expect(todoWidth, greaterThan(0));
+        expect(inProgressWidth, closeTo(todoWidth / 2, 1));
+        expect(doneWidth, closeTo(todoWidth, 1));
 
-      // Quick Actions
-      expect(find.text('View projects'), findsOneWidget);
-      expect(find.text('New project'), findsOneWidget);
-    });
+        // Workload
+        expect(find.text('Project workload'), findsOneWidget);
+        expect(find.text('Makko Mobile'), findsOneWidget);
+        expect(find.text('Makko Web'), findsOneWidget);
+
+        // Quick Actions
+        expect(find.text('View projects'), findsOneWidget);
+        expect(find.text('New project'), findsOneWidget);
+      },
+    );
 
     testWidgets('displays empty state card when 0 projects exist', (
       tester,
@@ -180,9 +202,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            dashboardStatsProvider.overrideWith((ref) => emptyStats),
-          ],
+          overrides: [dashboardStatsProvider.overrideWith((ref) => emptyStats)],
           child: MaterialApp(
             theme: AppTheme.darkTheme,
             home: const DashboardScreen(),
@@ -193,12 +213,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Ready to launch mood
-      expect(find.text('Ready to launch'), findsOneWidget);
       expect(
-        find.text(
-          'Your workspace is ready. Create your first project and start tracking what matters.',
-        ),
+        find.text('Your workspace is ready for its first project.'),
         findsOneWidget,
       );
 

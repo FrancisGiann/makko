@@ -34,18 +34,17 @@ class _EmptyStateState extends State<EmptyState>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    _fade = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _controller.forward();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final media = MediaQuery.maybeOf(context);
     final disableAnimations =
-        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+        (media?.disableAnimations ?? false) ||
+        (media?.accessibleNavigation ?? false);
     if (disableAnimations) {
       _controller.value = 1.0;
     }
@@ -60,8 +59,10 @@ class _EmptyStateState extends State<EmptyState>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final media = MediaQuery.maybeOf(context);
     final disableAnimations =
-        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+        (media?.disableAnimations ?? false) ||
+        (media?.accessibleNavigation ?? false);
 
     Widget body = Padding(
       padding: const EdgeInsets.all(MakkoShapes.screenPadding),
@@ -80,9 +81,8 @@ class _EmptyStateState extends State<EmptyState>
           const SizedBox(height: 8),
           Text(
             widget.subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: scheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           if (widget.actionButton != null) ...[
@@ -115,9 +115,6 @@ class _EmptyStateState extends State<EmptyState>
       return content;
     }
 
-    return FadeTransition(
-      opacity: _fade,
-      child: content,
-    );
+    return FadeTransition(opacity: _fade, child: content);
   }
 }

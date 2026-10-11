@@ -28,9 +28,11 @@ class _ShimmerContainerState extends State<ShimmerContainer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final disableAnimations =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (disableAnimations) {
+    final media = MediaQuery.maybeOf(context);
+    final reduceMotion =
+        (media?.disableAnimations ?? false) ||
+        (media?.accessibleNavigation ?? false);
+    if (reduceMotion) {
       if (_controller.isAnimating) {
         _controller.stop();
       }
@@ -47,11 +49,13 @@ class _ShimmerContainerState extends State<ShimmerContainer>
 
   @override
   Widget build(BuildContext context) {
-    final disableAnimations =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final media = MediaQuery.maybeOf(context);
+    final reduceMotion =
+        (media?.disableAnimations ?? false) ||
+        (media?.accessibleNavigation ?? false);
     return _ShimmerScope(
       controller: _controller,
-      disableAnimations: disableAnimations,
+      disableAnimations: reduceMotion,
       child: widget.child,
     );
   }
@@ -84,12 +88,7 @@ class ShimmerBox extends StatelessWidget {
   final double? height;
   final BorderRadiusGeometry? borderRadius;
 
-  const ShimmerBox({
-    super.key,
-    this.width,
-    this.height,
-    this.borderRadius,
-  });
+  const ShimmerBox({super.key, this.width, this.height, this.borderRadius});
 
   @override
   Widget build(BuildContext context) {

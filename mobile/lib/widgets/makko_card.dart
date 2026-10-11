@@ -20,7 +20,10 @@ class MakkoCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant
+              .withValues(alpha: 0.72),
+        ),
       ),
       child: Padding(padding: padding, child: child),
     );
